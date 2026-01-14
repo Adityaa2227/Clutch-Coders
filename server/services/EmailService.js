@@ -44,11 +44,12 @@ class EmailService {
         }
     }
 
-    async logEmail(recipient, subject, type, status, metadata = {}, error = null) {
+    async logEmail(recipient, subject, type, status, htmlContent, metadata = {}, error = null) {
         try {
             await EmailLog.create({
                 recipient,
                 subject,
+                body: htmlContent,
                 type,
                 status,
                 metadata,
@@ -81,12 +82,12 @@ class EmailService {
                 // console.log(`[Mock Email] To: ${to} | Subject: ${subject}`);
             }
 
-            await this.logEmail(to, subject, type, 'SENT', metadata);
+            await this.logEmail(to, subject, type, 'SENT', htmlContent, metadata);
             return true;
 
         } catch (error) {
             console.error('Email Send Error:', error);
-            await this.logEmail(to, subject, type, 'FAILED', metadata, error);
+            await this.logEmail(to, subject, type, 'FAILED', htmlContent, metadata, error);
             return false;
         }
     }

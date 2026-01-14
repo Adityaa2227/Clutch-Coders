@@ -11,7 +11,8 @@ import {
     Activity,
     Users,
     Gift,
-    LifeBuoy
+    LifeBuoy,
+    Mail
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,6 +25,7 @@ import UserMonitor from './components/UserMonitor';
 import SecurityPanel from './components/SecurityPanel';
 import TransactionMonitor from './components/TransactionMonitor';
 import SupportPanel from './components/SupportPanel';
+import EmailMonitor from './components/EmailMonitor';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
@@ -59,6 +61,7 @@ const AdminDashboard = () => {
             case 'security': return <SecurityPanel />;
             case 'transactions': return <TransactionMonitor />;
             case 'support': return <SupportPanel />;
+            case 'emails': return <EmailMonitor />;
             default: return <Overview />;
         }
     };
@@ -126,6 +129,12 @@ const AdminDashboard = () => {
                         label="Support" 
                         active={activeTab === 'support'} 
                         onClick={() => setActiveTab('support')} 
+                    />
+                    <SidebarItem 
+                        icon={Mail} 
+                        label="System Emails" 
+                        active={activeTab === 'emails'} 
+                        onClick={() => setActiveTab('emails')} 
                     />
                 </div>
 

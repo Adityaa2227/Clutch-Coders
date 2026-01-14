@@ -9,6 +9,9 @@ const EmailLogSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    body: {
+        type: String // Store HTML content for internal viewing
+    },
     type: {
         type: String,
         enum: ['PAYMENT', 'EXPIRY_WARNING', 'EXPIRED', 'REWARD', 'REFERRAL', 'SUPPORT', 'SYSTEM'],

@@ -293,6 +293,23 @@ module.exports = (io) => {
         }
     });
 
+    // @route   GET api/admin/emails
+    // @desc    Get system email logs (Internal Inbox for Demo)
+    // @access  Private (Admin)
+    router.get('/emails', auth, adminAuth, async (req, res) => {
+        try {
+            const EmailLog = require('../models/EmailLog');
+            const logs = await EmailLog.find()
+                .sort({ createdAt: -1 })
+                .limit(50)
+                .lean(); // Fetch plain objects
+            res.json(logs);
+        } catch (err) {
+            console.error("Email Log Error:", err);
+            res.status(500).send('Server Error');
+        }
+    });
+
     // @route   PUT api/admin/users/:id/suspend
     // @desc    Toggle user suspension
     router.put('/users/:id/suspend', auth, adminAuth, async (req, res) => {
