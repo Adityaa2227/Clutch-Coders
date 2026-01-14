@@ -9,11 +9,13 @@ import {
     CreditCard, 
     LogOut,
     Activity,
-    Users
+    Users,
+    Gift
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 // Components
+import OffersManager from './components/OffersManager';
 import Overview from './components/Overview';
 import ServicesManager from './components/ServicesManager';
 import PassMonitor from './components/PassMonitor';
@@ -35,7 +37,7 @@ const AdminDashboard = () => {
             
             socket.on('disconnect', () => setIsConnected(false));
             return () => {
-               socket.off('disconnect');
+                socket.off('disconnect');
             }
         }
     }, [socket]);
@@ -51,6 +53,7 @@ const AdminDashboard = () => {
             case 'users': return <UserMonitor />;
             case 'services': return <ServicesManager />; 
             case 'passes': return <PassMonitor />;
+            case 'rewards': return <OffersManager />; // Add Case
             case 'security': return <SecurityPanel />;
             case 'transactions': return <TransactionMonitor />;
             default: return <Overview />;
@@ -96,6 +99,12 @@ const AdminDashboard = () => {
                         label="Active Passes" 
                         active={activeTab === 'passes'} 
                         onClick={() => setActiveTab('passes')} 
+                    />
+                    <SidebarItem 
+                        icon={Gift} 
+                        label="Offers & Rewards" 
+                        active={activeTab === 'rewards'} 
+                        onClick={() => setActiveTab('rewards')} 
                     />
                     <SidebarItem 
                         icon={CreditCard} 

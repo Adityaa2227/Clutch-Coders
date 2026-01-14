@@ -12,6 +12,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 
 import Landing from './pages/Landing';
 import Profile from './pages/Profile';
+import RewardsDashboard from './pages/RewardsDashboard';
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
               <Route path="/services" element={<Marketplace />} />
               <Route path="/demo/:id" element={<ServiceDemo />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/rewards" element={<RewardsDashboard />} />
               <Route path="/admin" element={<AdminDashboard />} />
             </Routes>
           </Layout>

@@ -32,11 +32,16 @@ router.post('/register', async (req, res) => {
       return res.status(400).json({ msg: 'User already exists' });
     }
 
+    const crypto = require('crypto'); // Ensure imported if not already
+
+    const referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+
     user = new User({
       name,
       email,
       password,
-      role: role || 'user'
+      role: role || 'user',
+      referralCode
     });
 
     const salt = await bcrypt.genSalt(10);
@@ -185,12 +190,16 @@ router.post('/google', async (req, res) => {
             }
         } else {
             // User doesn't exist - Register
+            const crypto = require('crypto');
+            const referralCode = crypto.randomBytes(4).toString('hex').toUpperCase();
+            
             user = new User({
                 name,
                 email,
                 googleId,
                 role: 'user', // Default role
-                password: '' // No password
+                password: '', // No password
+                referralCode
             });
             await user.save();
         }

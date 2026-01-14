@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, LogOut, Loader2, Menu, X, User as UserIcon, Store, LayoutDashboard, Clock } from 'lucide-react';
+import { Wallet, LogOut, Loader2, Menu, X, User as UserIcon, Store, LayoutDashboard, Clock, Gift } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -53,6 +53,7 @@ const Navbar = () => {
                 {isAuthenticated && user && (
                     <>
                         <NavLink to="/services" icon={Store}>Marketplace</NavLink>
+                        <NavLink to="/rewards" icon={Gift}>Rewards</NavLink>
                         <NavLink to="/history" icon={Clock}>History</NavLink>
                         <NavLink to="/dashboard" icon={LayoutDashboard}>Dashboard</NavLink>
                         <NavLink to="/profile" icon={UserIcon}>Profile</NavLink>

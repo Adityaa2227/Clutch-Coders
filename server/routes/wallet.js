@@ -143,7 +143,10 @@ module.exports = function(io) {
     // @access  Private
     router.get('/transactions', auth, async (req, res) => {
       try {
-        const transactions = await Transaction.find({ userId: req.user.id }).sort({ createdAt: -1 });
+        const transactions = await Transaction.find({ 
+            userId: req.user.id,
+            type: { $nin: ['cashback', 'referral_reward'] }
+        }).sort({ createdAt: -1 });
         res.json(transactions);
       } catch (err) {
         console.error(err.message);

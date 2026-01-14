@@ -8,6 +8,10 @@ const userSchema = new mongoose.Schema({
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   status: { type: String, enum: ['active', 'suspended'], default: 'active' },
   walletBalance: { type: Number, default: 0 },
+  referralCode: { type: String, unique: true, sparse: true }, 
+  referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  totalCashbackEarned: { type: Number, default: 0 },
+  totalReferralRewards: { type: Number, default: 0 },
   createdAt: { type: Date, default: Date.now },
 });
 

@@ -45,6 +45,86 @@ router.post('/buy', auth, async (req, res) => {
     });
     await transaction.save();
 
+    // ==========================================
+    // 🎁 REWARDS & CASHBACK LOGIC
+    // ==========================================
+    try {
+        // 1. CASHBACK ENGINE
+        const Offer = require('../models/Offer');
+        // Find active cashback offer (simplified: take first active)
+        const activeOffer = await Offer.findOne({ type: 'cashback', isActive: true });
+        
+        let cashbackAmount = 0;
+        if (activeOffer) {
+            // formula: (cost * percentage / 100) limited by maxCap
+            const rawCashback = (totalCost * activeOffer.percentage) / 100;
+            cashbackAmount = Math.min(rawCashback, activeOffer.maxCap);
+            
+            if (cashbackAmount > 0) {
+                // Credit User Wallet
+                user.walletBalance += cashbackAmount;
+                user.totalCashbackEarned += cashbackAmount;
+                
+                // Create Cashback Transaction
+                const cbTx = new Transaction({
+                    userId: user.id,
+                    amount: cashbackAmount,
+                    type: 'cashback',
+                    description: `Cashback: ${activeOffer.name}`,
+                    status: 'success'
+                });
+                await cbTx.save();
+            }
+        }
+
+        // 2. REFERRAL ENGINE
+        // Check if this is the user's FIRST purchase ever (to trigger referral reward)
+        // We count purchases. If count is 1 (this one), then check referrals.
+        const purchaseCount = await Transaction.countDocuments({ userId: user.id, type: 'purchase' });
+        
+        if (purchaseCount === 1 && user.referredBy) {
+            const Referral = require('../models/Referral');
+            // Find existing pending referral
+            const referral = await Referral.findOne({ referrerId: user.referredBy, refereeId: user.id, status: 'pending' });
+            
+            if (referral) {
+                // Determine Reward (Fixed ₹5 as per requirements, or fetch from config)
+                const REWARD = 5; 
+                
+                // Credit Referrer
+                const referrer = await User.findById(user.referredBy);
+                if (referrer) {
+                    referrer.walletBalance += REWARD;
+                    referrer.totalReferralRewards += REWARD;
+                    await referrer.save();
+
+                    // Log Transaction for Referrer
+                    await Transaction.create({
+                        userId: referrer.id,
+                        amount: REWARD,
+                        type: 'referral_reward',
+                        description: `Referral Bonus: ${user.name} made first purchase`,
+                        status: 'success'
+                    });
+
+                    // Update Referral Status
+                    referral.status = 'completed';
+                    referral.completedAt = new Date();
+                    referral.rewardAmount = REWARD;
+                    await referral.save();
+                }
+            }
+        }
+        
+        // Save User changes (wallet balance updated from cashback)
+        await user.save();
+
+    } catch (rewardErr) {
+        console.error("Reward Engine Error:", rewardErr);
+        // Don't fail the purchase if rewards fail
+    }
+    // ==========================================
+
     // Check for ANY existing pass for this service (Active preferred, but Expired is okay to revive)
     // We sort by status (active first) just in case there are duplicates from before
     let existingPass = await Pass.findOne({ userId: user.id, serviceId: service.id })

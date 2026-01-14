@@ -22,7 +22,9 @@ app.use(express.json());
 app.use(cors());
 app.use(morgan('dev'));
 
-mongoose.connect(process.env.MONGO_URI).then(() => console.log('MongoDB Connected'))
+mongoose.connect(process.env.MONGO_URI, {
+    family: 4, // Force IPv4
+}).then(() => console.log('MongoDB Connected'))
   .catch(err => console.error('MongoDB Connection Error:', err));
 
 // Routes
@@ -32,6 +34,7 @@ app.use('/api/passes', require('./routes/pass'));
 app.use('/api/access', require('./routes/access')(io)); // Pass io to access routes for realtime updates
 app.use('/api/wallet', require('./routes/wallet')(io));
 app.use('/api/admin', require('./routes/admin')(io));
+app.use('/api/rewards', require('./routes/rewards')(io));
 
 // Basic Route
 app.get('/', (req, res) => {
