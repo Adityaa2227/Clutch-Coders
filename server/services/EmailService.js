@@ -9,13 +9,17 @@ class EmailService {
         // Fallback to console if no creds.
         if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
             this.transporter = nodemailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: 587,
-                secure: false, // Use STARTTLS
+                service: 'gmail', // Use built-in Gmail service (handles ports automatically)
                 auth: {
                     user: process.env.EMAIL_USER,
                     pass: process.env.EMAIL_PASS
-                }
+                },
+                tls: {
+                    rejectUnauthorized: false // Help with self-signed certs in some cloud envs
+                },
+                connectionTimeout: 10000, // 10 seconds timeout
+                greetingTimeout: 10000,
+                socketTimeout: 10000
             });
             this.mode = 'LIVE';
         } else {
