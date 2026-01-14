@@ -124,16 +124,50 @@ module.exports = function (io) {
       });
 
 
-      // 6. Return Success
+      // 6. Return Success / Process Service Logic
+      let responseData = {
+          item: "Service Consumed Successfully",
+          timestamp: new Date()
+      };
+
+      // AI Service Integration (Groq)
+      if (serviceName.match(/ai|gpt/i) && req.body.prompt) {
+          try {
+             // Groq API (OpenAI Compatible)
+             const groqUrl = `https://api.groq.com/openai/v1/chat/completions`;
+             const apiRes = await fetch(groqUrl, {
+                 method: 'POST',
+                 headers: { 
+                     'Content-Type': 'application/json',
+                     'Authorization': `Bearer ${process.env.GROQ_API_KEY}`
+                 },
+                 body: JSON.stringify({
+                     model: "llama-3.3-70b-versatile", 
+                     messages: [{ role: "user", content: req.body.prompt }]
+                 })
+             });
+             const data = await apiRes.json();
+             
+             if (data.choices && data.choices[0].message) {
+                 responseData.response = data.choices[0].message.content;
+             } else {
+                 // Fallback on Vendor Error
+                 console.error("Groq Error:", JSON.stringify(data));
+                 const errorMsg = data.error?.message || "Unknown Provider Error";
+                 responseData.response = `[System: Groq API Error '${data.error?.code || 'Error'}'. Falling back to simulation.]\n\n${errorMsg}\n\n(Simulated Reply): Hello! I am Flex AI via Groq (Simulation). Rate limit or key issue detected.`;
+             }
+          } catch (aiErr) {
+              console.error("AI Service Error:", aiErr);
+              responseData.response = "Internal System: Could not reach Groq provider. (Network/Config Error).";
+          }
+      }
+
       res.json({
         msg: 'Access Granted',
         accessGranted: true,
         remainingAmount: validPass.remainingAmount,
         serviceName: serviceName,
-        data: {
-            item: "Simulated Data Result",
-            timestamp: new Date()
-        }
+        data: responseData
       });
 
     } catch (err) {
