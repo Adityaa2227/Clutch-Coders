@@ -8,7 +8,8 @@ import {
     ShieldAlert, 
     CreditCard, 
     LogOut,
-    Activity
+    Activity,
+    Users
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,9 +17,9 @@ import { useNavigate } from 'react-router-dom';
 import Overview from './components/Overview';
 import ServicesManager from './components/ServicesManager';
 import PassMonitor from './components/PassMonitor';
+import UserMonitor from './components/UserMonitor';
 import SecurityPanel from './components/SecurityPanel';
-
-// import TransactionFeed from './components/TransactionFeed'; // Using Overview's feed for now
+import TransactionMonitor from './components/TransactionMonitor';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
@@ -47,10 +48,11 @@ const AdminDashboard = () => {
     const renderContent = () => {
         switch(activeTab) {
             case 'overview': return <Overview onViewAll={() => setActiveTab('transactions')} />;
+            case 'users': return <UserMonitor />;
             case 'services': return <ServicesManager />; 
             case 'passes': return <PassMonitor />;
             case 'security': return <SecurityPanel />;
-            case 'transactions': return <h2 className="text-center mt-20 text-slate-500">Full Transaction History (See Overview for Recent)</h2>;
+            case 'transactions': return <TransactionMonitor />;
             default: return <Overview />;
         }
     };
@@ -78,6 +80,12 @@ const AdminDashboard = () => {
                         onClick={() => setActiveTab('overview')} 
                     />
                     <SidebarItem 
+                        icon={Users} 
+                        label="Users" 
+                        active={activeTab === 'users'} 
+                        onClick={() => setActiveTab('users')} 
+                    />
+                    <SidebarItem 
                         icon={Server} 
                         label="Services" 
                         active={activeTab === 'services'} 
@@ -90,16 +98,16 @@ const AdminDashboard = () => {
                         onClick={() => setActiveTab('passes')} 
                     />
                     <SidebarItem 
-                        icon={ShieldAlert} 
-                        label="Security" 
-                        active={activeTab === 'security'} 
-                        onClick={() => setActiveTab('security')} 
-                    />
-                    <SidebarItem 
                         icon={CreditCard} 
                         label="Transactions" 
                         active={activeTab === 'transactions'} 
                         onClick={() => setActiveTab('transactions')} 
+                    />
+                    <SidebarItem 
+                        icon={ShieldAlert} 
+                        label="Security" 
+                        active={activeTab === 'security'} 
+                        onClick={() => setActiveTab('security')} 
                     />
                 </div>
 

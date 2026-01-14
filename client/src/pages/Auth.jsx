@@ -3,6 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { GoogleLogin } from '@react-oauth/google';
+import api from '../api';
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -147,6 +149,45 @@ const Auth = () => {
                     </>
                 )}
             </button>
+
+            <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                    <span className="px-2 bg-[#0a0a0b] text-text-muted">Or continue with</span>
+                </div>
+            </div>
+
+            <div className="flex justify-center">
+                 <GoogleLogin
+                    onSuccess={async (credentialResponse) => {
+                        try {
+                            const { credential } = credentialResponse;
+                            // Call our backend
+                            const res = await api.post('/auth/google', { credential });
+                             // Update Context (Assuming AuthContext handles this, but here we do it manually to mimic login)
+                             localStorage.setItem('token', res.data.token);
+                             // Force reload or use context method if available. 
+                             // Ideally useAuth should export a method for this.
+                             // For now, let's just use window.location.reload() or manually set user.
+                             // Better: Modify useAuth to expose a `googleLogin` function or `setToken`.
+                             // Let's assume standard flow:
+                             window.location.href = '/dashboard';
+                        } catch (err) {
+                            console.error(err);
+                            setError('Google Login Failed');
+                        }
+                    }}
+                    onError={() => {
+                        setError('Google Login Failed');
+                    }}
+                    theme="filled_black"
+                    shape="pill"
+                    width="300"
+                />
+            </div>
+
           </form>
         </div>
         

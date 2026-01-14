@@ -158,4 +158,63 @@ router.put('/profile', auth, async (req, res) => {
     }
 });
 
+// @route   POST api/auth/google
+// @desc    Google Auth (Login/Register)
+// @access  Public
+const { OAuth2Client } = require('google-auth-library');
+const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+router.post('/google', async (req, res) => {
+    const { credential } = req.body;
+
+    try {
+        const ticket = await client.verifyIdToken({
+            idToken: credential,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const { name, email, sub: googleId } = ticket.getPayload();
+
+        let user = await User.findOne({ email });
+
+        if (user) {
+            // User exists - Login
+            // If user has no googleId, link it now
+            if (!user.googleId) {
+                user.googleId = googleId;
+                await user.save();
+            }
+        } else {
+            // User doesn't exist - Register
+            user = new User({
+                name,
+                email,
+                googleId,
+                role: 'user', // Default role
+                password: '' // No password
+            });
+            await user.save();
+        }
+
+        const payload = {
+            user: {
+                id: user.id
+            }
+        };
+
+        jwt.sign(
+            payload,
+            process.env.JWT_SECRET,
+            { expiresIn: '5d' },
+            (err, token) => {
+                if (err) throw err;
+                res.json({ token, user: { id: user.id, name: user.name, role: user.role, walletBalance: user.walletBalance } });
+            }
+        );
+
+    } catch (err) {
+        console.error(err);
+        res.status(400).send('Google Auth Error');
+    }
+});
+
 module.exports = router;

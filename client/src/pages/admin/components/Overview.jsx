@@ -17,7 +17,8 @@ const Overview = ({ onViewAll }) => {
     
     // Graph State
     const [graphData, setGraphData] = useState([]);
-    const [activeRange, setActiveRange] = useState('24h');
+    const [activeRange, setActiveRange] = useState('1h');
+    const [showTotalRevenue, setShowTotalRevenue] = useState(false);
 
     useEffect(() => {
         fetchStats(activeRange);
