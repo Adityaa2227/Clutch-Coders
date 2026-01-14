@@ -12,7 +12,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // Allow all for hackathon convenience
+    origin: process.env.CLIENT_URL || "*", 
     methods: ["GET", "POST"]
   }
 });
@@ -21,7 +21,9 @@ app.set('io', io); // Make io accessible in routes
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || "*"
+}));
 app.use(morgan('dev'));
 
 mongoose.connect(process.env.MONGO_URI, {
