@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-obsidian text-text-main antialiased;
+    /* Optional: Subtle gradient to give depth but keeping it dark */
+    background-image: radial-gradient(circle at 50% 0%, #111827 0%, #0B0F14 60%);
+    background-attachment: fixed;
+  }
+}
+
+@layer components {
+  .glass-card {
+    /* Using the Surface Color #111827 with some transparency for glass effect */
+    @apply bg-surface/60 backdrop-blur-2xl border border-border/50 shadow-xl rounded-2xl;
+    transition: all 0.3s ease;
+  }
+
+  .glass-card:hover {
+    /* Glow effect using Primary #3B82F6 */
+    @apply border-primary/30 bg-surface/80;
+    box-shadow: 0 0 30px -5px rgba(59, 130, 246, 0.15);
+  }
+
+  .btn-primary {
+    @apply bg-primary hover:bg-primary-400 text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-lg shadow-primary/20 active:scale-95 border border-primary/50 hover:shadow-primary/40;
+  }
+
+  .btn-secondary {
+    @apply bg-surface hover:bg-surface/80 text-text-main font-bold py-2.5 px-5 rounded-xl transition-all border border-border hover:border-border/80 active:scale-95;
+  }
+
+  /* Premium Input Fields */
+  input {
+    @apply bg-surface/50 border border-border text-text-main focus:border-primary focus:ring-1 focus:ring-primary/50 transition-all shadow-inner placeholder:text-text-muted;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0B0F14;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1F2937;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #374151;
+}
