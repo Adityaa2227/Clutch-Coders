@@ -46,6 +46,9 @@ router.post('/buy', auth, async (req, res) => {
     await transaction.save();
 
     // ==========================================
+    let cashbackEarned = 0;
+
+    // ==========================================
     // 🎁 REWARDS & CASHBACK LOGIC
     // ==========================================
     try {
@@ -54,16 +57,16 @@ router.post('/buy', auth, async (req, res) => {
         // Find active cashback offer (simplified: take first active)
         const activeOffer = await Offer.findOne({ type: 'cashback', isActive: true });
         
-        let cashbackAmount = 0;
         if (activeOffer) {
             // formula: (cost * percentage / 100) limited by maxCap
             const rawCashback = (totalCost * activeOffer.percentage) / 100;
-            cashbackAmount = Math.min(rawCashback, activeOffer.maxCap);
+            const cashbackAmount = Math.min(rawCashback, activeOffer.maxCap);
             
             if (cashbackAmount > 0) {
                 // Credit User Wallet
                 user.walletBalance += cashbackAmount;
                 user.totalCashbackEarned += cashbackAmount;
+                cashbackEarned = cashbackAmount;
                 
                 // Create Cashback Transaction
                 const cbTx = new Transaction({
@@ -76,30 +79,26 @@ router.post('/buy', auth, async (req, res) => {
                 await cbTx.save();
             }
         }
-
+        
+        // ... Referral Logic (kept as is, just ensuring variable scope doesn't break) ...
         // 2. REFERRAL ENGINE
         // Check if this is the user's FIRST purchase ever (to trigger referral reward)
-        // We count purchases. If count is 1 (this one), then check referrals.
         const purchaseCount = await Transaction.countDocuments({ userId: user.id, type: 'purchase' });
         
         if (purchaseCount === 1 && user.referredBy) {
             const Referral = require('../models/Referral');
-            // Find existing pending referral
             const referral = await Referral.findOne({ referrerId: user.referredBy, refereeId: user.id, status: 'pending' });
             
             if (referral) {
-                // Determine Reward (Fixed ₹5 for Referrer, ₹2.5 for Referee)
                 const REFERRER_REWARD = 5; 
                 const REFEREE_REWARD = 2.5;
 
-                // 1. Credit REFERRER (The one who invited)
                 const referrer = await User.findById(user.referredBy);
                 if (referrer) {
                     referrer.walletBalance += REFERRER_REWARD;
                     referrer.totalReferralRewards += REFERRER_REWARD;
                     await referrer.save();
 
-                    // Log Transaction for Referrer
                     await Transaction.create({
                         userId: referrer.id,
                         amount: REFERRER_REWARD,
@@ -109,9 +108,10 @@ router.post('/buy', auth, async (req, res) => {
                     });
                 }
 
-                // 2. Credit REFEREE (The current user)
                 user.walletBalance += REFEREE_REWARD;
-                // Note: user.save() is called at the end of this block
+                // Add to cashbackEarned for display? Or keep separate? 
+                // Using 'cashbackEarned' as a generic 'rewardsEarned' for this transaction display is good.
+                cashbackEarned += REFEREE_REWARD; 
                 
                 await Transaction.create({
                     userId: user.id,
@@ -121,45 +121,34 @@ router.post('/buy', auth, async (req, res) => {
                     status: 'success'
                 });
 
-                // Update Referral Status
                 referral.status = 'completed';
                 referral.completedAt = new Date();
-                referral.rewardAmount = REFERRER_REWARD; // Store what the referrer got, or maybe combined? Keeping referrer reward for tracking.
+                referral.rewardAmount = REFERRER_REWARD; 
                 await referral.save();
             }
         }
         
-        // Save User changes (wallet balance updated from cashback)
         await user.save();
 
     } catch (rewardErr) {
         console.error("Reward Engine Error:", rewardErr);
-        // Don't fail the purchase if rewards fail
     }
     // ==========================================
 
     // Check for ANY existing pass for this service (Active preferred, but Expired is okay to revive)
-    // We sort by status (active first) just in case there are duplicates from before
     let existingPass = await Pass.findOne({ userId: user.id, serviceId: service.id })
-        .sort({ status: 1 }); // 'active' comes before 'expired' alphabetically? No. 'active' < 'expired'. 
-        // actually 'a' < 'e', so active is first. Perfect.
+        .sort({ status: 1 }); 
 
     let passToReturn;
 
     if (existingPass) {
         // MERGE / REVIVE LOGIC
-        
-        // Reactivate if expired
         if (existingPass.status === 'expired') {
             existingPass.status = 'active';
-            // Reset counters if needed, but usually we just ADD to them.
-            // If it was usage based and 0, adding amount is correct.
-            // If it was time based and expired, we need to reset start time?
         }
 
         if (service.type === 'time') {
              const hours = Number(amount);
-             // If expired, start from NOW. If active, extend from current expiry.
              const baseTime = (existingPass.expiresAt && existingPass.expiresAt > new Date()) 
                 ? existingPass.expiresAt 
                 : new Date();
@@ -168,15 +157,13 @@ router.post('/buy', auth, async (req, res) => {
              newExpiry.setHours(newExpiry.getHours() + hours);
              existingPass.expiresAt = newExpiry;
         } else {
-             // Usage based
-             // If it was expired, remainingAmount might be 0. We just add.
              existingPass.remainingAmount += Number(amount);
              existingPass.totalLimit += Number(amount);
         }
         await existingPass.save();
         passToReturn = existingPass;
     } else {
-        // CREATE NEW LOGIC (Only if absolutely no pass exists)
+        // CREATE NEW LOGIC
         const newPass = new Pass({
           userId: user.id,
           serviceId: service.id,
@@ -196,7 +183,12 @@ router.post('/buy', auth, async (req, res) => {
         passToReturn = newPass;
     }
 
-    res.json({ msg: 'Pass purchased successfully', pass: passToReturn, walletBalance: user.walletBalance });
+    res.json({ 
+        msg: 'Pass purchased successfully', 
+        pass: passToReturn, 
+        walletBalance: user.walletBalance,
+        cashbackEarned: cashbackEarned 
+    });
 
   } catch (err) {
     console.error(err.message);

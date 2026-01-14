@@ -81,11 +81,12 @@ router.put('/:id', auth, async (req, res) => {
         // if (user.role !== 'admin') return res.status(401).json({ msg: 'User not authorized' });
 
         // Update fields
-        const { name, description, active, costPerUnit } = req.body;
+        const { name, description, active, costPerUnit, unitName } = req.body;
         if (name) service.name = name;
         if (description) service.description = description;
         if (active !== undefined) service.active = active;
         if (costPerUnit) service.costPerUnit = costPerUnit;
+        if (unitName) service.unitName = unitName;
 
         await service.save();
         res.json(service);

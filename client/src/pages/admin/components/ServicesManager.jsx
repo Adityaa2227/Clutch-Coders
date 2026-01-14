@@ -13,6 +13,8 @@ const ServicesManager = () => {
     });
     const [creating, setCreating] = useState(false);
 
+    const [editingId, setEditingId] = useState(null);
+
     useEffect(() => {
         fetchServices();
     }, []);
@@ -28,21 +30,50 @@ const ServicesManager = () => {
         }
     };
 
-    const handleCreateService = async (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setCreating(true);
         setStatusMsg(null);
         try {
-            const res = await api.post('/services', newService);
-            setServices([...services, res.data]);
+            if (editingId) {
+                // Update Existing
+                const res = await api.put(`/services/${editingId}`, newService);
+                setServices(services.map(s => s._id === editingId ? res.data : s));
+                setStatusMsg({ type: 'success', text: 'Service Updated Successfully!' });
+                setEditingId(null);
+            } else {
+                // Create New
+                const res = await api.post('/services', newService);
+                setServices([...services, res.data]);
+                setStatusMsg({ type: 'success', text: 'Service Deployed Successfully!' });
+            }
             setNewService({ name: '', description: '', type: 'usage', costPerUnit: '', unitName: '' });
-            setStatusMsg({ type: 'success', text: 'Service Deployed Successfully!' });
         } catch (err) {
             console.error(err);
-            setStatusMsg({ type: 'error', text: 'Failed to deploy service' });
+            setStatusMsg({ type: 'error', text: editingId ? 'Update Failed' : 'Deployment Failed' });
         } finally {
             setCreating(false);
         }
+    };
+
+    const handleEditClick = (service) => {
+        setNewService({
+            name: service.name,
+            description: service.description || '',
+            type: service.type,
+            costPerUnit: service.costPerUnit,
+            unitName: service.unitName
+        });
+        setEditingId(service._id);
+        setStatusMsg(null);
+        // Scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
+    const cancelEdit = () => {
+        setEditingId(null);
+        setNewService({ name: '', description: '', type: 'usage', costPerUnit: '', unitName: '' });
+        setStatusMsg(null);
     };
 
     const handleDelete = async (id) => {
@@ -52,6 +83,7 @@ const ServicesManager = () => {
             await api.delete(`/services/${id}`);
             setServices(services.filter(s => s._id !== id));
             setStatusMsg({ type: 'success', text: 'Service deleted' });
+            if (editingId === id) cancelEdit();
         } catch (err) {
             console.error(err);
             setStatusMsg({ type: 'error', text: 'Delete failed' });
@@ -87,12 +119,18 @@ const ServicesManager = () => {
             )}
 
             <div className="grid lg:grid-cols-3 gap-8">
-                {/* Create Form */}
-                <div className="glass-card p-6 bg-surface border border-white/5 rounded-2xl h-fit">
-                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                        <Plus size={18} className="text-green-400" /> Deploy New Service
+                {/* Create/Edit Form */}
+                <div className={`glass-card p-6 bg-surface border border-white/5 rounded-2xl h-fit transition-all ${editingId ? 'border-blue-500/50 shadow-lg shadow-blue-500/10' : ''}`}>
+                    <h3 className="font-bold mb-4 flex items-center justify-between">
+                        <span className="flex items-center gap-2">
+                             {editingId ? <Edit size={18} className="text-blue-400" /> : <Plus size={18} className="text-green-400" />}
+                             {editingId ? 'Edit Service' : 'Deploy New Service'}
+                        </span>
+                        {editingId && (
+                            <button onClick={cancelEdit} className="text-xs text-red-400 hover:underline">Cancel</button>
+                        )}
                     </h3>
-                    <form onSubmit={handleCreateService} className="space-y-4">
+                    <form onSubmit={handleSubmit} className="space-y-4">
                         <div>
                             <label className="block text-xs font-bold text-text-muted mb-1 uppercase">Name</label>
                             <input 
@@ -118,9 +156,10 @@ const ServicesManager = () => {
                              <div>
                                 <label className="block text-xs font-bold text-text-muted mb-1 uppercase">Type</label>
                                 <select 
-                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm outline-none"
+                                    className="w-full bg-white/5 border border-white/10 rounded-lg p-3 text-sm outline-none disabled:opacity-50"
                                     value={newService.type}
                                     onChange={e => setNewService({...newService, type: e.target.value})}
+                                    disabled={!!editingId} // Type usually shouldn't change for data integrity
                                 >
                                     <option value="usage">Per Usage</option>
                                     <option value="time">Time Based</option>
@@ -152,9 +191,9 @@ const ServicesManager = () => {
                         <button 
                             type="submit" 
                             disabled={creating}
-                            className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl transition-colors disabled:opacity-50"
+                            className={`w-full py-3 font-bold rounded-xl transition-colors disabled:opacity-50 ${editingId ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-green-600 hover:bg-green-500 text-white'}`}
                         >
-                            {creating ? 'Deploying...' : 'Deploy Service'}
+                            {creating ? (editingId ? 'Updating...' : 'Deploying...') : (editingId ? 'Update Agent' : 'Deploy Service')}
                         </button>
                     </form>
                 </div>
@@ -169,7 +208,7 @@ const ServicesManager = () => {
                         </div>
                     ) : (
                         services.map(service => (
-                            <div key={service._id} className={`p-4 rounded-xl bg-surface border ${service.active ? 'border-white/5' : 'border-red-500/20 bg-red-500/5'} flex justify-between items-center group hover:border-blue-500/30 transition-all`}>
+                            <div key={service._id} className={`p-4 rounded-xl bg-surface border ${service.active ? 'border-white/5' : 'border-red-500/20 bg-red-500/5'} flex justify-between items-center group hover:border-blue-500/30 transition-all ${editingId === service._id ? 'border-blue-500 ring-1 ring-blue-500' : ''}`}>
                                 <div className="flex items-start gap-4">
                                     <div className={`p-3 rounded-lg ${service.active ? 'bg-blue-500/10 text-blue-400' : 'bg-slate-700/50 text-slate-500'}`}>
                                         <Box size={20} />
@@ -188,6 +227,14 @@ const ServicesManager = () => {
                                 </div>
                                 
                                 <div className="flex items-center gap-2">
+                                    <button 
+                                        onClick={() => handleEditClick(service)}
+                                        disabled={!!editingId && editingId !== service._id}
+                                        className={`p-2 rounded-lg transition-colors hover:bg-white/10 text-blue-400 ${editingId && editingId !== service._id ? 'opacity-20' : ''}`}
+                                        title="Edit Service"
+                                    >
+                                        <Edit size={18} />
+                                    </button>
                                     <button 
                                         onClick={() => handleToggleActive(service)}
                                         className={`p-2 rounded-lg transition-colors ${service.active ? 'hover:bg-red-500/10 hover:text-red-400 text-slate-400' : 'bg-green-500/10 text-green-400 hover:bg-green-500/20'}`}

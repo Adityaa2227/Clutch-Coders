@@ -69,28 +69,28 @@ const Overview = ({ onViewAll }) => {
                     value={`₹${stats.revenue.toLocaleString()}`} 
                     icon={DollarSign} 
                     color="green"
-                    trend="+12.5% vs yesterday"
+                    // trend="+12.5% vs yesterday" 
                 />
                 <StatCard 
                     title="Active Users" 
                     value={stats.activeUsers} 
                     icon={Users} 
                     color="blue"
-                    trend="+5 new today"
+                    // trend="+5 new today"
                 />
                 <StatCard 
                     title="Active Passes" 
                     value={stats.activePasses} 
                     icon={Ticket} 
                     color="purple"
-                    trend="85% utilization"
+                    // trend="85% utilization"
                 />
                  <StatCard 
                     title="Failed Payments" 
                     value={stats.failedTransactions} 
                     icon={Activity} 
                     color="red"
-                     trend="Requires Attention"
+                     trend={stats.failedTransactions > 0 ? "Requires Attention" : "All Good"}
                 />
             </div>
 
