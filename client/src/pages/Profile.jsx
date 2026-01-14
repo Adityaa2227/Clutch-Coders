@@ -54,79 +54,119 @@ const Profile = () => {
         }
     };
 
-    if (loading) return <div className="text-center py-20 text-text-muted">Loading Profile...</div>;
+    if (loading) return <div className="flex justify-center items-center min-h-[60vh] text-slate-500">Loading Profile...</div>;
 
     return (
-        <div className="max-w-2xl mx-auto">
+        <div className="container mx-auto max-w-5xl px-4 py-8 mt-10 space-y-8">
             <Toast 
                 message={toast.message} 
                 type={toast.type} 
                 onClose={() => setToast({ ...toast, message: null })} 
             />
 
-            <div className="flex items-center gap-3 mb-8">
-                <Shield className="text-blue-500 w-8 h-8" />
-                <h1 className="text-3xl font-bold">My Profile</h1>
+            {/* Header */}
+            <div>
+                 <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent flex items-center gap-3">
+                    <User className="text-blue-500" size={40} /> Account Settings
+                 </h1>
+                 <p className="text-slate-400 mt-2 text-lg">Manage your personal information and security preferences.</p>
             </div>
 
-            <div className="glass-card p-8 relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-purple-500" />
+            <div className="grid md:grid-cols-3 gap-8">
+                {/* Left Column: Identity Card */}
+                <div className="md:col-span-1 space-y-6">
+                    <div className="glass-card p-6 flex flex-col items-center text-center relative overflow-hidden group">
+                        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                        
+                        <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center text-4xl font-bold text-white mb-4 border border-white/10 shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform duration-500">
+                            {formData.name.charAt(0).toUpperCase()}
+                        </div>
+                        
+                        <h2 className="text-2xl font-bold text-white mb-1">{formData.name}</h2>
+                        <p className="text-blue-400 text-sm font-mono mb-4">{formData.email}</p>
 
-                <div className="flex items-center gap-6 mb-8">
-                    <div className="w-20 h-20 rounded-full bg-blue-600/20 flex items-center justify-center text-3xl font-bold text-blue-400 border border-blue-500/30">
-                        {formData.name.charAt(0).toUpperCase()}
+                        <div className="w-full pt-4 border-t border-white/5 space-y-3">
+                             <div className="flex justify-between items-center text-sm">
+                                 <span className="text-slate-400">Account Role</span>
+                                 <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded text-xs font-bold uppercase border border-blue-500/20">{authUser?.role}</span>
+                             </div>
+                             <div className="flex justify-between items-center text-sm">
+                                 <span className="text-slate-400">Status</span>
+                                 <span className="px-2 py-1 bg-green-500/10 text-green-400 rounded text-xs font-bold uppercase border border-green-500/20">Active</span>
+                             </div>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-bold">{formData.name}</h2>
-                        <span className="px-2 py-1 bg-purple-500/10 text-purple-400 text-xs rounded border border-purple-500/20 uppercase font-bold tracking-wider">
-                            {authUser?.role} Account
-                        </span>
+
+                    <div className="glass-card p-6 border-l-4 border-l-purple-500">
+                        <h3 className="font-bold text-white mb-2 flex items-center gap-2">
+                            <Shield size={18} className="text-purple-400"/> Security
+                        </h3>
+                        <p className="text-sm text-slate-400 mb-4">
+                            Your account is secured with standard encryption. 
+                        </p>
+                        <button className="text-xs text-purple-400 font-bold uppercase tracking-wider hover:text-white transition-colors">
+                            Change Password
+                        </button>
                     </div>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div>
-                        <label className="block text-sm text-text-muted mb-2">Full Name</label>
-                        <div className="relative">
-                            <User className="absolute left-3 top-3 text-text-muted" size={18} />
-                            <input
-                                type="text"
-                                required
-                                className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 focus:border-blue-500 outline-none transition-all"
-                                value={formData.name}
-                                onChange={e => setFormData({ ...formData, name: e.target.value })}
-                            />
-                        </div>
-                    </div>
+                {/* Right Column: Edit Form */}
+                <div className="md:col-span-2">
+                    <div className="glass-card p-8 bg-surface/40">
+                        <h3 className="text-xl font-bold text-white mb-6 border-b border-white/5 pb-4">Personal Details</h3>
+                        
+                        <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Full Name</label>
+                                    <div className="relative group">
+                                        <User className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
+                                        <input
+                                            type="text"
+                                            required
+                                            className="w-full bg-black/20 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-white focus:border-blue-500 focus:bg-blue-500/5 outline-none transition-all placeholder:text-slate-600"
+                                            value={formData.name}
+                                            onChange={e => setFormData({ ...formData, name: e.target.value })}
+                                            placeholder="John Doe"
+                                        />
+                                    </div>
+                                </div>
 
-                    <div>
-                        <label className="block text-sm text-text-muted mb-2">Email Address</label>
-                        <div className="relative">
-                            <Mail className="absolute left-3 top-3 text-text-muted" size={18} />
-                            <input
-                                type="email"
-                                required
-                                className="w-full bg-surface border border-border rounded-xl pl-10 pr-4 py-3 focus:border-blue-500 outline-none transition-all"
-                                value={formData.email}
-                                onChange={e => setFormData({ ...formData, email: e.target.value })}
-                            />
-                        </div>
-                    </div>
+                                <div>
+                                    <label className="block text-sm font-bold text-slate-400 mb-2 uppercase tracking-wider">Email Address</label>
+                                    <div className="relative group">
+                                        <Mail className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
+                                        <input
+                                            type="email"
+                                            required
+                                            disabled
+                                            className="w-full bg-black/20 border border-white/10 rounded-xl pl-12 pr-4 py-3 text-slate-400 cursor-not-allowed outline-none"
+                                            value={formData.email}
+                                            title="Email cannot be changed"
+                                        />
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-2 text-right">To change email, contact support.</p>
+                                </div>
+                            </div>
 
-                    <div className="pt-4">
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="btn-primary w-full py-3 flex justify-center items-center gap-2 text-lg"
-                        >
-                            {saving ? 'Saving...' : (
-                                <>
-                                    <Save size={20} /> Save Changes
-                                </>
-                            )}
-                        </button>
+                            <div className="pt-8 flex justify-end">
+                                <button
+                                    type="submit"
+                                    disabled={saving}
+                                    className="px-8 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2"
+                                >
+                                    {saving ? (
+                                        <>Updating...</>
+                                    ) : (
+                                        <>
+                                            <Save size={18} /> Save Changes
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
     );

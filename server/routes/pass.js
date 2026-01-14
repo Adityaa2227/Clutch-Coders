@@ -88,31 +88,44 @@ router.post('/buy', auth, async (req, res) => {
             const referral = await Referral.findOne({ referrerId: user.referredBy, refereeId: user.id, status: 'pending' });
             
             if (referral) {
-                // Determine Reward (Fixed ₹5 as per requirements, or fetch from config)
-                const REWARD = 5; 
-                
-                // Credit Referrer
+                // Determine Reward (Fixed ₹5 for Referrer, ₹2.5 for Referee)
+                const REFERRER_REWARD = 5; 
+                const REFEREE_REWARD = 2.5;
+
+                // 1. Credit REFERRER (The one who invited)
                 const referrer = await User.findById(user.referredBy);
                 if (referrer) {
-                    referrer.walletBalance += REWARD;
-                    referrer.totalReferralRewards += REWARD;
+                    referrer.walletBalance += REFERRER_REWARD;
+                    referrer.totalReferralRewards += REFERRER_REWARD;
                     await referrer.save();
 
                     // Log Transaction for Referrer
                     await Transaction.create({
                         userId: referrer.id,
-                        amount: REWARD,
+                        amount: REFERRER_REWARD,
                         type: 'referral_reward',
                         description: `Referral Bonus: ${user.name} made first purchase`,
                         status: 'success'
                     });
-
-                    // Update Referral Status
-                    referral.status = 'completed';
-                    referral.completedAt = new Date();
-                    referral.rewardAmount = REWARD;
-                    await referral.save();
                 }
+
+                // 2. Credit REFEREE (The current user)
+                user.walletBalance += REFEREE_REWARD;
+                // Note: user.save() is called at the end of this block
+                
+                await Transaction.create({
+                    userId: user.id,
+                    amount: REFEREE_REWARD,
+                    type: 'referral_reward',
+                    description: 'Referral Bonus: Used invitation code',
+                    status: 'success'
+                });
+
+                // Update Referral Status
+                referral.status = 'completed';
+                referral.completedAt = new Date();
+                referral.rewardAmount = REFERRER_REWARD; // Store what the referrer got, or maybe combined? Keeping referrer reward for tracking.
+                await referral.save();
             }
         }
         

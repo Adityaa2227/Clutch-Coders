@@ -61,7 +61,7 @@ const Marketplace = () => {
     const totalCost = selectedService ? amount * selectedService.costPerUnit : 0;
 
     return (
-        <div>
+        <div className="container mx-auto max-w-6xl px-4 py-8 mt-10 space-y-8">
            <Toast 
                message={toast.message} 
                type={toast.type} 
@@ -87,7 +87,7 @@ const Marketplace = () => {
                         <input 
                             type="number" 
                             min="1"
-                            className="w-full bg-surface border border-border rounded-xl p-3 focus:border-primary outline-none transition-all"
+                            className="w-full bg-surface border border-border rounded-xl p-3 focus:border-primary outline-none transition-all text-white"
                             value={amount}
                             onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))}
                         />
@@ -99,13 +99,13 @@ const Marketplace = () => {
                     </div>
 
                     {user.walletBalance < totalCost && (
-                         <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg">
+                         <div className="flex items-center gap-2 text-red-400 text-sm bg-red-400/10 p-3 rounded-lg border border-red-500/10">
                              <AlertCircle size={16} /> Insufficient Balance (₹{user.walletBalance})
                          </div>
                     )}
 
                     {statusMsg && (
-                        <div className={`flex items-center gap-2 text-sm p-3 rounded-lg ${statusMsg.type === 'success' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-400'}`}>
+                        <div className={`flex items-center gap-2 text-sm p-3 rounded-lg ${statusMsg.type === 'success' ? 'bg-green-500/10 text-green-400 border border-green-500/10' : 'bg-red-500/10 text-red-400 border border-red-500/10'}`}>
                             {statusMsg.type === 'success' ? <CheckCircle size={16}/> : <AlertCircle size={16}/>}
                             {statusMsg.text}
                         </div>
@@ -115,7 +115,10 @@ const Marketplace = () => {
                         <button 
                             onClick={handleConfirmPurchase}
                             disabled={loading || user.walletBalance < totalCost}
-                            className="w-full btn-primary flex justify-center items-center gap-2 py-3"
+                            className={`w-full py-3 rounded-xl font-bold flex justify-center items-center gap-2 transition-all shadow-lg
+                                ${user.walletBalance >= totalCost 
+                                    ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white shadow-blue-500/20' 
+                                    : 'bg-surface border border-white/10 text-slate-500 cursor-not-allowed'}`}
                         >
                             {loading ? 'Processing...' : `Confirm Payment`}
                         </button>
@@ -124,13 +127,17 @@ const Marketplace = () => {
               )}
            </Modal>
 
-           <div className="flex justify-between items-end mb-8">
+           {/* Header */}
+           <div className="flex flex-col md:flex-row justify-between items-end gap-4 mb-12">
                 <div>
-                     <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-400 to-blue-500 bg-clip-text text-transparent">Marketplace</h1>
-                     <p className="text-text-muted mt-2">Discover and subscribe to micro-services.</p>
+                     <h1 className="text-4xl font-bold bg-gradient-to-r from-teal-400 to-blue-500 bg-clip-text text-transparent flex items-center gap-3">
+                        <ShoppingCart className="text-teal-400" size={40} /> Marketplace
+                     </h1>
+                     <p className="text-slate-400 mt-2 text-lg">Discover and subscribe to premium micro-services.</p>
                 </div>
            </div>
 
+           {/* Services Grid */}
            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
                {services.map((service, idx) => (
                    <motion.div 
@@ -138,30 +145,40 @@ const Marketplace = () => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: idx * 0.1 }}
                         key={service._id} 
-                        className="glass-card p-6 flex flex-col"
+                        className="glass-card p-0 flex flex-col group overflow-hidden border border-white/5 hover:border-teal-500/30 transition-all duration-300 relative"
                     >
-                       <div className="flex justify-between items-start mb-4">
-                           <div className="bg-blue-500/10 p-3 rounded-lg text-blue-400">
-                               <Star className="w-6 h-6" />
-                           </div>
-                           <span className="text-xs font-bold uppercase tracking-wider bg-surface px-2 py-1 rounded text-text-muted border border-border">{service.type}</span>
-                       </div>
+                       {/* Hover Glow */}
+                       <div className="absolute inset-0 bg-gradient-to-b from-teal-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
-                       <h3 className="text-xl font-bold mb-2">{service.name}</h3>
-                       <p className="text-text-muted text-sm mb-6 flex-grow">{service.description || "No description provided."}</p>
+                       <div className="p-8 flex flex-col h-full relative z-10">
+                            <div className="flex justify-between items-start mb-6">
+                                <div className="bg-gradient-to-br from-teal-500/20 to-blue-500/20 p-4 rounded-2xl text-teal-400 shadow-inner border border-white/5">
+                                    <Star className="w-6 h-6" fill="currentColor" fillOpacity={0.2} />
+                                </div>
+                                <span className={`text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full border ${service.type === 'usage' ? 'border-purple-500/30 text-purple-400 bg-purple-500/10' : 'border-orange-500/30 text-orange-400 bg-orange-500/10'}`}>
+                                    {service.type}
+                                </span>
+                            </div>
 
-                       <div className="mt-auto">
-                           <div className="flex justify-between items-center mb-4">
-                               <span className="text-text-muted text-sm">Price per {service.unitName}</span>
-                               <span className="text-2xl font-bold text-white">₹{service.costPerUnit}</span>
-                           </div>
-                           
-                           <button 
-                                onClick={() => openPurchaseModal(service)}
-                                className="w-full btn-primary flex items-center justify-center gap-2"
-                            >
-                               <ShoppingCart size={18} /> Buy Pass
-                           </button>
+                            <h3 className="text-2xl font-bold text-white mb-2">{service.name}</h3>
+                            <p className="text-slate-400 text-sm mb-8 leading-relaxed flex-grow">{service.description || "No description provided."}</p>
+
+                            <div className="mt-auto pt-6 border-t border-white/5">
+                                <div className="flex justify-between items-end mb-6">
+                                    <span className="text-slate-500 text-xs uppercase font-bold tracking-wider">Price per unit</span>
+                                    <div className="text-right">
+                                        <span className="text-2xl font-bold text-white">₹{service.costPerUnit}</span>
+                                        <span className="text-xs text-slate-500 ml-1">/ {service.unitName}</span>
+                                    </div>
+                                </div>
+                                
+                                <button 
+                                        onClick={() => openPurchaseModal(service)}
+                                        className="w-full py-3 bg-white/5 hover:bg-teal-500 hover:text-white border border-white/10 hover:border-teal-500/50 rounded-xl transition-all duration-300 font-bold flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-teal-500/20"
+                                    >
+                                    <ShoppingCart size={18} /> Buy Pass
+                                </button>
+                            </div>
                        </div>
                    </motion.div>
                ))}

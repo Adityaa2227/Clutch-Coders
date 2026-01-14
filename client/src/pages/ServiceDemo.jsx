@@ -14,6 +14,7 @@ const ServiceDemo = () => {
     
     // For realtime balance updates
     const socket = useSocket();
+    const [timeLeft, setTimeLeft] = useState(null);
     const [currentBalance, setCurrentBalance] = useState(null);
 
     useEffect(() => {
@@ -23,28 +24,58 @@ const ServiceDemo = () => {
         // Fetch Initial Balance / Active Pass
         api.get('/passes/my-passes').then(res => {
             const myPasses = res.data;
-            const activePass = myPasses.find(p => p.serviceId._id === id && p.status === 'active');
+            const activePass = myPasses.find(p => (p.serviceId._id || p.serviceId) === id && p.status === 'active');
+            
             if (activePass) {
-                setCurrentBalance(activePass.remainingAmount);
+                // Determine logic based on service type
+                const type = activePass.serviceId.type || 'usage';
+
+                if (type === 'time') {
+                     // TIME BASED: Calculate Difference
+                     const expiry = new Date(activePass.expiresAt);
+                     const updateTimer = () => {
+                         const now = new Date();
+                         const diff = expiry - now;
+                         if (diff <= 0) {
+                             setCurrentBalance("Expired");
+                             setTimeLeft(0);
+                             setError("Pass expired. Please renew.");
+                         } else {
+                             const hours = Math.floor(diff / (1000 * 60 * 60));
+                             const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                             const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                             setCurrentBalance(`${hours}h ${minutes}m ${seconds}s`);
+                             setTimeLeft(diff);
+                         }
+                     };
+                     updateTimer(); // Initial run
+                     const interval = setInterval(updateTimer, 1000);
+                     return () => clearInterval(interval);
+                } else {
+                     // USAGE BASED
+                     setCurrentBalance(activePass.remainingAmount);
+                }
+
             } else {
                 setCurrentBalance(0);
                 setError("No active pass found. Please buy one from Marketplace.");
             }
         });
+    }, [id]);
 
-        // Listen for updates to show new balance immediately
-        if (socket) {
-            socket.on('usage_update', (data) => {
-                if (data.serviceId === id) {
-                    setCurrentBalance(data.remainingAmount);
-                    if (data.remainingAmount <= 0) {
-                         setError("Pass exhausted. Please top up.");
-                    }
+    useEffect(() => {
+        if (!socket || !service || service.type === 'time') return; // Sockets only for usage updates
+        
+        socket.on('usage_update', (data) => {
+            if (data.serviceId === id) {
+                setCurrentBalance(data.remainingAmount);
+                if (data.remainingAmount <= 0) {
+                     setError("Pass exhausted. Please top up.");
                 }
-            });
-        }
+            }
+        });
         return () => socket && socket.off('usage_update');
-    }, [id, socket]);
+    }, [id, socket, service]);
 
     const handleExecute = async () => {
         setLoading(true);
@@ -57,7 +88,9 @@ const ServiceDemo = () => {
             // Simulate network delay for effect
             setTimeout(() => {
                 setResult(res.data);
-                setCurrentBalance(res.data.remainingAmount);
+                if (res.data.remainingAmount !== undefined) {
+                    setCurrentBalance(res.data.remainingAmount);
+                }
                 setLoading(false);
             }, 800);
         } catch (err) {
@@ -81,24 +114,26 @@ const ServiceDemo = () => {
                 <p className="text-slate-400 mb-8">{service.description}</p>
 
                 <div className="bg-slate-900/50 p-4 rounded-lg inline-block mb-8 border border-slate-700">
-                     <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">Your Balance</div>
+                     <div className="text-xs text-slate-500 uppercase tracking-widest mb-1">
+                        {service.type === 'time' ? 'Time Remaining' : 'Your Balance'}
+                     </div>
                      <div className="text-3xl font-mono font-bold text-white">
-                         {currentBalance !== null ? currentBalance : '---'} <span className="text-sm text-slate-500">{service.unitName}</span>
+                         {currentBalance !== null ? currentBalance : '---'} <span className="text-sm text-slate-500">{service.type === 'usage' ? service.unitName : ''}</span>
                      </div>
                 </div>
 
                 <div className="space-y-6">
                     <button
                         onClick={handleExecute}
-                        disabled={loading}
+                        disabled={loading || (service.type === 'time' && timeLeft <= 0)}
                         className={`w-full py-4 text-xl font-bold rounded-xl flex items-center justify-center gap-3 transition-all ${
-                            loading ? 'bg-slate-700 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-[1.02] shadow-lg shadow-purple-500/20'
+                            loading || (service.type === 'time' && timeLeft <= 0) ? 'bg-slate-700 cursor-not-allowed' : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:scale-[1.02] shadow-lg shadow-purple-500/20'
                         }`}
                     >
                         {loading ? (
                             <>Processing...</>
                         ) : (
-                            <><Zap /> CONSUME API</>
+                            <><Zap /> {service.type === 'time' ? 'LAUNCH SESSION' : 'CONSUME API'}</>
                         )}
                     </button>
 
