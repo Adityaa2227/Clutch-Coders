@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Transaction = require('../models/Transaction');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
+const EmailService = require('../services/EmailService');
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -44,7 +45,7 @@ module.exports = function(io) {
         res.json({ ...order, key_id: process.env.RAZORPAY_KEY_ID });
       } catch (err) {
         console.error(err);
-        res.status(500).send('Order Creation Failed');
+        res.status(500).json({ msg: 'Order Creation Failed', error: err.message, details: err });
       }
     });
     
@@ -128,6 +129,8 @@ module.exports = function(io) {
 
         if(transaction) {
             io.to('admin_room').emit('payment_success', transaction);
+            // Send Email Receipt
+            await EmailService.sendTransactionReceipt(user, transaction);
         }
     
         res.json({ msg: 'Payment Verified', walletBalance: user.walletBalance, transaction });
@@ -188,6 +191,9 @@ module.exports = function(io) {
         
         // Notify Admin of withdrawal
         io.to('admin_room').emit('transaction_created', transaction);
+
+        // Send Email Receipt
+        await EmailService.sendTransactionReceipt(user, transaction);
 
         res.json({ msg: 'Withdrawal Successful', walletBalance: user.walletBalance, transaction });
 

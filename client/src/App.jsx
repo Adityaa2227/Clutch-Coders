@@ -13,6 +13,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import Landing from './pages/Landing';
 import Profile from './pages/Profile';
 import RewardsDashboard from './pages/RewardsDashboard';
+import Support from './pages/Support';
 
 const App = () => {
   return (
@@ -29,6 +30,7 @@ const App = () => {
               <Route path="/demo/:id" element={<ServiceDemo />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/rewards" element={<RewardsDashboard />} />
+              <Route path="/support" element={<Support />} />
               <Route path="/admin" element={<AdminDashboard />} />
             </Routes>
           </Layout>

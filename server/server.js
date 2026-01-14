@@ -17,6 +17,8 @@ const io = new Server(server, {
   }
 });
 
+app.set('io', io); // Make io accessible in routes
+
 // Middleware
 app.use(express.json());
 app.use(cors());
@@ -31,18 +33,20 @@ mongoose.connect(process.env.MONGO_URI, {
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/services', require('./routes/service'));
 app.use('/api/passes', require('./routes/pass'));
-app.use('/api/access', require('./routes/access')(io)); // Pass io to access routes for realtime updates
+app.use('/api/access', require('./routes/access')(io)); 
 app.use('/api/wallet', require('./routes/wallet')(io));
 app.use('/api/admin', require('./routes/admin')(io));
 app.use('/api/rewards', require('./routes/rewards')(io));
+app.use('/api/support', require('./routes/support'));
 
 // Basic Route
 app.get('/', (req, res) => {
   res.send('FlexPass API Running');
 });
 
-
-
+// Email Jobs
+const initEmailJobs = require('./jobs/emailJobs');
+initEmailJobs();
 // Socket.io Connection
 io.on('connection', (socket) => {
   // console.log('User connected:', socket.id);
@@ -53,9 +57,18 @@ io.on('connection', (socket) => {
   });
 
   socket.on('join_admin', () => {
-    // In production, we should verify the user token here again to ensure they are admin
     socket.join('admin_room');
     console.log(`Socket ${socket.id} joined ADMIN room`);
+  });
+
+  // Support System Events
+  socket.on('join_ticket', (ticketId) => {
+      socket.join(`ticket_${ticketId}`);
+      // console.log(`Socket ${socket.id} joined ticket_${ticketId}`);
+  });
+
+  socket.on('join_admin_notifications', () => {
+      socket.join('admin_notifications');
   });
 
   socket.on('disconnect', () => {

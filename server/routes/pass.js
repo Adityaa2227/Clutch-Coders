@@ -6,6 +6,7 @@ const Service = require('../models/Service');
 const Pass = require('../models/Pass');
 const Transaction = require('../models/Transaction');
 const UsageLog = require('../models/UsageLog');
+const EmailService = require('../services/EmailService');
 
 // @route   POST api/passes/buy
 // @desc    Buy a pass for a service
@@ -182,6 +183,9 @@ router.post('/buy', auth, async (req, res) => {
         await newPass.save();
         passToReturn = newPass;
     }
+
+    // Send Email Receipt
+    await EmailService.sendTransactionReceipt(user, transaction, service.name);
 
     res.json({ 
         msg: 'Pass purchased successfully', 

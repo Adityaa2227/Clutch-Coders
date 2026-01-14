@@ -59,7 +59,7 @@ const RewardsDashboard = () => {
                         <Wallet size={24} />
                     </div>
                     <div className="text-slate-400 text-sm font-medium">Wallet Balance</div>
-                    <div className="text-3xl font-bold text-white mt-1">₹{stats?.walletBalance || 0}</div>
+                    <div className="text-3xl font-bold text-white mt-1">₹{Number(stats?.walletBalance || 0).toFixed(2)}</div>
                 </motion.div>
 
                 <motion.div 
@@ -72,7 +72,7 @@ const RewardsDashboard = () => {
                         <Award size={24} />
                     </div>
                     <div className="text-slate-400 text-sm font-medium">Total Cashback</div>
-                    <div className="text-3xl font-bold text-white mt-1">₹{stats?.totalCashback || 0}</div>
+                    <div className="text-3xl font-bold text-white mt-1">₹{Number(stats?.totalCashback || 0).toFixed(2)}</div>
                 </motion.div>
 
                 <motion.div 
@@ -85,7 +85,7 @@ const RewardsDashboard = () => {
                         <Share2 size={24} />
                     </div>
                     <div className="text-slate-400 text-sm font-medium">Referral Earnings</div>
-                    <div className="text-3xl font-bold text-white mt-1">₹{stats?.totalReferralRewards || 0}</div>
+                    <div className="text-3xl font-bold text-white mt-1">₹{Number(stats?.totalReferralRewards || 0).toFixed(2)}</div>
                 </motion.div>
             </div>
 
@@ -173,7 +173,7 @@ const RewardsDashboard = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-right font-mono text-white">
-                                            {ref.status === 'completed' ? `+₹${ref.rewardAmount}` : '-'}
+                                            {ref.status === 'completed' ? `+₹${Number(ref.rewardAmount).toFixed(2)}` : '-'}
                                         </td>
                                     </tr>
                                 ))}
@@ -212,7 +212,7 @@ const RewardsDashboard = () => {
                                             </span>
                                         </td>
                                         <td className="p-4 text-right font-mono text-green-400 font-bold">
-                                            +₹{tx.amount}
+                                            +₹{Number(tx.amount).toFixed(2)}
                                         </td>
                                     </tr>
                                 ))}

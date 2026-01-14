@@ -10,7 +10,8 @@ import {
     LogOut,
     Activity,
     Users,
-    Gift
+    Gift,
+    LifeBuoy
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -22,6 +23,7 @@ import PassMonitor from './components/PassMonitor';
 import UserMonitor from './components/UserMonitor';
 import SecurityPanel from './components/SecurityPanel';
 import TransactionMonitor from './components/TransactionMonitor';
+import SupportPanel from './components/SupportPanel';
 
 const AdminDashboard = () => {
     const { user, logout } = useAuth();
@@ -53,9 +55,10 @@ const AdminDashboard = () => {
             case 'users': return <UserMonitor />;
             case 'services': return <ServicesManager />; 
             case 'passes': return <PassMonitor />;
-            case 'rewards': return <OffersManager />; // Add Case
+            case 'rewards': return <OffersManager />;
             case 'security': return <SecurityPanel />;
             case 'transactions': return <TransactionMonitor />;
+            case 'support': return <SupportPanel />;
             default: return <Overview />;
         }
     };
@@ -117,6 +120,12 @@ const AdminDashboard = () => {
                         label="Security" 
                         active={activeTab === 'security'} 
                         onClick={() => setActiveTab('security')} 
+                    />
+                    <SidebarItem 
+                        icon={LifeBuoy} 
+                        label="Support" 
+                        active={activeTab === 'support'} 
+                        onClick={() => setActiveTab('support')} 
                     />
                 </div>
 

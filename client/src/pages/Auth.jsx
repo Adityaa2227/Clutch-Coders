@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertCircle, Sparkles, ShieldCheck, Zap } from 'lucide-react';
+import { Mail, Lock, User, ArrowRight, Loader2, Eye, EyeOff, AlertCircle, Sparkles, ShieldCheck, Zap, KeyRound, Timer } from 'lucide-react';
 import { GoogleLogin } from '@react-oauth/google';
 import api from '../api';
 
@@ -13,8 +13,12 @@ const Auth = () => {
   const [error, setError] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   
-  const { login, register } = useAuth();
+  const { login, verifyOTP } = useAuth();
   const navigate = useNavigate();
+
+  const [verificationMode, setVerificationMode] = useState(false);
+  const [otp, setOtp] = useState('');
+  const [timer, setTimer] = useState(0);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -24,10 +28,18 @@ const Auth = () => {
     try {
       if (isLogin) {
         await login(formData.email, formData.password);
+        navigate('/dashboard');
+      } else if (verificationMode) {
+        // Verify OTP & Create Account
+        await verifyOTP(formData.email, otp, formData.name, formData.password);
+        navigate('/dashboard');
       } else {
-        await register(formData.name, formData.email, formData.password);
+        // Request OTP
+        await api.post('/auth/request-otp', { email: formData.email });
+        setVerificationMode(true);
+        setTimer(60);
+        setIsLoading(false);
       }
-      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       setError(err.response?.data?.msg || 'Authentication failed. Please try again.');
@@ -37,9 +49,20 @@ const Auth = () => {
 
   const toggleMode = () => {
       setIsLogin(!isLogin);
+      setVerificationMode(false);
       setError(null);
       setFormData({ name: '', email: '', password: '' });
+      setOtp('');
   };
+
+  // Timer Tick
+  React.useEffect(() => {
+    let interval;
+    if (timer > 0) {
+      interval = setInterval(() => setTimer((prev) => prev - 1), 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
 
   return (
     <div className="min-h-[calc(100vh)] flex bg-[#0B0F14] overflow-hidden">
@@ -118,10 +141,10 @@ const Auth = () => {
                 className="text-center lg:text-left"
             >
                 <h2 className="text-3xl font-bold text-white mb-2">
-                    {isLogin ? 'Welcome back' : 'Create an account'}
+                    {verificationMode ? 'Verify Email' : (isLogin ? 'Welcome back' : 'Create an account')}
                 </h2>
                 <p className="text-slate-400">
-                    {isLogin ? 'Enter your details to access your workspace.' : 'Start your journey with FlexPass today.'}
+                    {verificationMode ? `Enter the code sent to ${formData.email}` : (isLogin ? 'Enter your details to access your workspace.' : 'Start your journey with FlexPass today.')}
                 </p>
             </motion.div>
 
@@ -141,59 +164,97 @@ const Auth = () => {
                 </AnimatePresence>
 
                 <div className="space-y-4">
-                    <AnimatePresence>
-                        {!isLogin && (
-                            <motion.div
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="overflow-hidden"
+                    {verificationMode ? (
+                        <div className="relative group">
+                            <KeyRound className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
+                            <input 
+                                type="text"
+                                placeholder="Enter 6-digit Code"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600 text-white font-mono tracking-widest text-lg"
+                                value={otp}
+                                onChange={e => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                maxLength={6}
+                                required
+                                autoFocus
+                            />
+                             <div className="mt-2 text-right">
+                                {timer > 0 ? (
+                                    <span className="text-xs text-slate-500 flex items-center justify-end gap-1">
+                                        <Timer size={12} /> Resend in {timer}s
+                                    </span>
+                                ) : (
+                                    <button 
+                                        type="button"
+                                        onClick={async () => {
+                                           try {
+                                             await api.post('/auth/request-otp', { email: formData.email });
+                                             setTimer(60);
+                                           } catch(e) {}
+                                        }}
+                                        className="text-xs text-blue-400 hover:text-blue-300 font-medium transition-colors"
+                                    >
+                                        Resend Code
+                                    </button>
+                                )}
+                             </div>
+                        </div>
+                    ) : (
+                        <>
+                        <AnimatePresence>
+                            {!isLogin && (
+                                <motion.div
+                                    initial={{ opacity: 0, height: 0 }}
+                                    animate={{ opacity: 1, height: 'auto' }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    className="overflow-hidden"
+                                >
+                                    <div className="relative group">
+                                        <User className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
+                                        <input 
+                                            type="text"
+                                            placeholder="Full Name" 
+                                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600 text-white"
+                                            value={formData.name}
+                                            onChange={e => setFormData({...formData, name: e.target.value})}
+                                            required={!isLogin}
+                                        />
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
+
+                        <div className="relative group">
+                            <Mail className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
+                            <input 
+                                type="email" 
+                                placeholder="Email Address"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600 text-white"
+                                value={formData.email}
+                                onChange={e => setFormData({...formData, email: e.target.value})}
+                                required
+                            />
+                        </div>
+
+                        <div className="relative group">
+                            <Lock className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
+                            <input 
+                                type={showPassword ? "text" : "password"}
+                                placeholder="Password"
+                                className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-12 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600 text-white"
+                                value={formData.password}
+                                onChange={e => setFormData({...formData, password: e.target.value})}
+                                required
+                            />
+                            <button 
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute right-4 top-3.5 text-slate-500 hover:text-white transition-colors"
                             >
-                                <div className="relative group">
-                                    <User className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
-                                    <input 
-                                        type="text"
-                                        placeholder="Full Name" 
-                                        className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600 text-white"
-                                        value={formData.name}
-                                        onChange={e => setFormData({...formData, name: e.target.value})}
-                                        required={!isLogin}
-                                    />
-                                </div>
-                            </motion.div>
-                        )}
-                    </AnimatePresence>
-
-                    <div className="relative group">
-                        <Mail className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
-                        <input 
-                            type="email" 
-                            placeholder="Email Address"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-4 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600 text-white"
-                            value={formData.email}
-                            onChange={e => setFormData({...formData, email: e.target.value})}
-                            required
-                        />
-                    </div>
-
-                    <div className="relative group">
-                        <Lock className="absolute left-4 top-3.5 text-slate-500 group-focus-within:text-blue-400 transition-colors" size={20} />
-                        <input 
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Password"
-                            className="w-full bg-white/5 border border-white/10 rounded-xl py-3.5 pl-12 pr-12 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none transition-all placeholder:text-slate-600 text-white"
-                            value={formData.password}
-                            onChange={e => setFormData({...formData, password: e.target.value})}
-                            required
-                        />
-                        <button 
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-3.5 text-slate-500 hover:text-white transition-colors"
-                        >
-                            {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                        </button>
-                    </div>
+                                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                            </button>
+                        </div>
+                        </>
+                    )}
                 </div>
 
                 <button 
@@ -205,7 +266,7 @@ const Auth = () => {
                         <Loader2 className="animate-spin" />
                     ) : (
                         <>
-                            {isLogin ? 'Sign In' : 'Create Account'}
+                            {verificationMode ? 'Verify & Create Account' : (isLogin ? 'Sign In' : 'Create Account')}
                             <ArrowRight size={18} />
                         </>
                     )}

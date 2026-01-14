@@ -113,7 +113,7 @@ const Marketplace = () => {
 
                         <div className="bg-gradient-to-r from-slate-900 to-slate-900/50 p-6 rounded-2xl border border-white/10 flex justify-between items-center">
                             <span className="text-slate-400 font-medium">Total Cost</span>
-                            <span className="text-3xl font-bold font-mono text-teal-400">₹{totalCost}</span>
+                            <span className="text-3xl font-bold font-mono text-teal-400">₹{Number(totalCost).toFixed(2)}</span>
                         </div>
 
                         {user.walletBalance < totalCost && (
@@ -121,7 +121,7 @@ const Marketplace = () => {
                                  <AlertCircle size={20} /> 
                                  <div>
                                      <div className="font-bold">Insufficient Balance</div>
-                                     <div className="opacity-75">Available: ₹{user.walletBalance}</div>
+                                     <div className="opacity-75">Available: ₹{Number(user.walletBalance).toFixed(2)}</div>
                                  </div>
                              </div>
                         )}
@@ -160,7 +160,7 @@ const Marketplace = () => {
                       <div className="bg-white/5 rounded-2xl p-6 space-y-4 border border-white/10">
                           <div className="flex justify-between items-center text-sm">
                               <span className="text-slate-400">Amount Paid</span>
-                              <span className="font-mono font-bold text-white">₹{totalCost}</span>
+                              <span className="font-mono font-bold text-white">₹{Number(totalCost).toFixed(2)}</span>
                           </div>
                           
                           {purchaseResult.cashbackEarned > 0 && (
@@ -168,13 +168,13 @@ const Marketplace = () => {
                                   <span className="text-yellow-400 font-bold flex items-center gap-2">
                                       <Star size={14} fill="currentColor" /> Cashback Earned
                                   </span>
-                                  <span className="font-mono font-bold text-yellow-400 text-lg">+₹{purchaseResult.cashbackEarned}</span>
+                                  <span className="font-mono font-bold text-yellow-400 text-lg">+₹{Number(purchaseResult.cashbackEarned).toFixed(2)}</span>
                               </div>
                           )}
 
                           <div className="border-t border-white/10 pt-4 flex justify-between items-center">
                               <span className="text-slate-400">New Balance</span>
-                              <span className="font-mono font-bold text-blue-400 text-lg">₹{purchaseResult.walletBalance}</span>
+                              <span className="font-mono font-bold text-blue-400 text-lg">₹{Number(purchaseResult.walletBalance).toFixed(2)}</span>
                           </div>
                       </div>
 
@@ -262,7 +262,7 @@ const Marketplace = () => {
                                 <div className="flex justify-between items-end mb-6">
                                     <span className="text-slate-500 text-xs uppercase font-bold tracking-wider">Price per unit</span>
                                     <div className="text-right">
-                                        <span className="text-2xl font-bold text-white">₹{service.costPerUnit}</span>
+                                        <span className="text-2xl font-bold text-white">₹{Number(service.costPerUnit).toFixed(2)}</span>
                                         <span className="text-xs text-slate-500 ml-1">/ {service.unitName}</span>
                                     </div>
                                 </div>

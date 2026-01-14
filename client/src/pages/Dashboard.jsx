@@ -286,7 +286,7 @@ const Dashboard = () => {
                         <DollarSign size={24} />
                     </div>
                     <div className="text-slate-400 text-sm font-medium mb-1">Wallet Balance</div>
-                    <div className="text-4xl font-bold text-white font-mono tracking-tight">₹{user?.walletBalance}</div>
+                    <div className="text-4xl font-bold text-white font-mono tracking-tight">₹{Number(user?.walletBalance || 0).toFixed(2)}</div>
                 </motion.div>
 
                 {/* Subscriptions Card */}
@@ -423,7 +423,7 @@ const Dashboard = () => {
                 <div className="space-y-6">
                     <div className="bg-blue-500/10 p-4 rounded-xl border border-blue-500/20 flex justify-between items-center">
                         <span className="text-sm text-blue-300 font-medium">Available Balance</span>
-                        <span className="text-xl font-bold text-blue-400 font-mono">₹{user?.walletBalance}</span>
+                        <span className="text-xl font-bold text-blue-400 font-mono">₹{Number(user?.walletBalance || 0).toFixed(2)}</span>
                     </div>
 
                     <div>

@@ -15,6 +15,8 @@ const passSchema = new mongoose.Schema({
   
   expiresAt: { type: Date }, 
   status: { type: String, enum: ['active', 'expired'], default: 'active' },
+  expiryWarningSent: { type: Boolean, default: false },
+  expiryEmailSent: { type: Boolean, default: false },
   createdAt: { type: Date, default: Date.now },
 });
 

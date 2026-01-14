@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, LogOut, Loader2, Menu, X, User as UserIcon, Store, LayoutDashboard, Clock, Gift } from 'lucide-react';
+import { Wallet, LogOut, Loader2, Menu, X, User as UserIcon, Store, LayoutDashboard, Clock, Gift, LifeBuoy } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -56,6 +56,7 @@ const Navbar = () => {
                         <NavLink to="/rewards" icon={Gift}>Rewards</NavLink>
                         <NavLink to="/dashboard" icon={LayoutDashboard}>Dashboard</NavLink>
                         <NavLink to="/history" icon={Clock}>History</NavLink>
+                        <NavLink to="/support" icon={LifeBuoy}>Support</NavLink>
                     </>
                 )}
               </div>
@@ -70,7 +71,7 @@ const Navbar = () => {
                        <div className="p-1 bg-green-500/20 rounded-full group-hover:bg-green-500/30 transition-colors">
                            <Wallet className="w-4 h-4 text-green-400" />
                        </div>
-                       <span className="font-mono font-bold text-green-400 text-sm tracking-wide">₹{user.walletBalance}</span>
+                       <span className="font-mono font-bold text-green-400 text-sm tracking-wide">₹{Number(user.walletBalance).toFixed(2)}</span>
                     </div>
 
                     <div className="hidden md:flex items-center gap-3 pl-4 border-l border-white/10">
@@ -128,7 +129,7 @@ const Navbar = () => {
                         <>
                             <div className="flex justify-between items-center bg-surface p-3 rounded-lg mb-2 border border-border">
                                 <span className="text-sm font-bold">{user.name}</span>
-                                <span className="font-mono font-bold text-green-400 text-sm">₹{user.walletBalance}</span>
+                                <span className="font-mono font-bold text-green-400 text-sm">₹{Number(user.walletBalance).toFixed(2)}</span>
                             </div>
                             <Link to="/services" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
                                 <Store size={18} className="text-slate-400" /> Marketplace
@@ -138,6 +139,9 @@ const Navbar = () => {
                             </Link>
                             <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
                                 <LayoutDashboard size={18} className="text-slate-400" /> Dashboard
+                            </Link>
+                            <Link to="/support" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
+                                <LifeBuoy size={18} className="text-slate-400" /> Support
                             </Link>
                             <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
                                 <UserIcon size={18} className="text-slate-400" /> Profile

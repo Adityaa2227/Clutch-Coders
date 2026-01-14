@@ -49,7 +49,7 @@ const ServiceDemo = () => {
             
             setMessages(prev => [...prev, { role: 'ai', text: aiResponseText }]);
             
-            if (res.data.remainingAmount !== undefined) {
+            if (res.data.remainingAmount !== undefined && service.type !== 'time') {
                 setCurrentBalance(res.data.remainingAmount);
             }
             setLoading(false);
@@ -133,7 +133,7 @@ const ServiceDemo = () => {
             // Simulate network delay for effect
             setTimeout(() => {
                 setResult(res.data);
-                if (res.data.remainingAmount !== undefined) {
+                if (res.data.remainingAmount !== undefined && service.type !== 'time') {
                     setCurrentBalance(res.data.remainingAmount);
                 }
                 setLoading(false);
