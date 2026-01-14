@@ -3,7 +3,7 @@ import api from '../api';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { Plus, Zap, Activity, Clock, Shield, Users, DollarSign, Box } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Modal from '../components/Modal';
 
@@ -22,6 +22,12 @@ const Dashboard = () => {
     const [topUpModalOpen, setTopUpModalOpen] = useState(false);
     const [topUpAmount, setTopUpAmount] = useState(500);
     const [topUpLoading, setTopUpLoading] = useState(false);
+
+    // Withdraw State
+    const [withdrawModalOpen, setWithdrawModalOpen] = useState(false);
+    const [withdrawAmount, setWithdrawAmount] = useState(100);
+    const [upiId, setUpiId] = useState('');
+    const [withdrawLoading, setWithdrawLoading] = useState(false);
 
     // Admin State
     const [services, setServices] = useState([]);
@@ -183,6 +189,29 @@ const Dashboard = () => {
         }
     };
 
+
+    // Withdraw State - Handler
+    const handleWithdrawConfirm = async () => {
+        if (withdrawAmount > user.walletBalance) {
+            showToast("Insufficient Balance", 'error');
+            return;
+        }
+        setWithdrawLoading(true);
+        try {
+            const res = await api.post('/wallet/withdraw', { amount: withdrawAmount, upiId });
+            updateWallet(res.data.walletBalance);
+            setWithdrawModalOpen(false);
+            showToast("Withdrawal Successful!", 'success');
+            setWithdrawAmount(100);
+            setUpiId('');
+        } catch (err) {
+            console.error(err);
+            showToast(err.response?.data?.msg || "Withdrawal Failed", 'error'); 
+        } finally {
+            setWithdrawLoading(false);
+        }
+    };
+
     const handleCreateService = async (e) => {
         e.preventDefault();
         setCreatingService(true);
@@ -203,137 +232,12 @@ const Dashboard = () => {
         return <div className="text-center py-20 text-text-muted">Loading Dashboard...</div>;
     }
 
-    // --- ADMIN DASHBOARD ---
+    // --- ADMIN REDIRECT ---
     if (user?.role === 'admin') {
-        return (
-            <div className="space-y-8">
-                <Toast 
-                    message={toast.message} 
-                    type={toast.type} 
-                    onClose={() => setToast({ ...toast, message: null })} 
-                />
-                <div className="flex items-center gap-3 mb-8">
-                    <Shield className="text-blue-500 w-8 h-8" />
-                    <h1 className="text-3xl font-bold">Admin Control Center</h1>
-                </div>
-
-                {/* Stats Row */}
-                <div className="grid md:grid-cols-3 gap-6">
-                    <div className="glass-card p-6 bg-gradient-to-br from-blue-900/20 to-surface/20 border-blue-500/30">
-                        <div className="flex items-center gap-3 text-text-muted mb-2">
-                             <DollarSign size={18} /> Total Revenue (Mock)
-                        </div>
-                        <div className="text-4xl font-bold text-white">₹12,450</div>
-                    </div>
-                    <div className="glass-card p-6 bg-surface/40">
-                         <div className="flex items-center gap-3 text-text-muted mb-2">
-                             <Users size={18} /> Active Users
-                        </div>
-                        <div className="text-4xl font-bold text-white">1,204</div>
-                    </div>
-                    <div className="glass-card p-6 bg-surface/40">
-                        <div className="flex items-center gap-3 text-text-muted mb-2">
-                             <Box size={18} /> Live Services
-                        </div>
-                        <div className="text-4xl font-bold text-white">{services.length}</div>
-                    </div>
-                </div>
-
-                <div className="grid lg:grid-cols-2 gap-8">
-                    {/* Create Service Form */}
-                    <div className="glass-card p-8">
-                        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <Plus className="text-green-400" /> Deploy New Service
-                        </h2>
-                        <form onSubmit={handleCreateService} className="space-y-5">
-                            <div>
-                                <label className="block text-sm text-text-muted mb-2">Service Name</label>
-                                <input 
-                                    type="text" 
-                                    required
-                                    className="w-full bg-surface border border-border rounded-xl p-3 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="e.g. GPT-4 Turbo API"
-                                    value={newService.name}
-                                    onChange={e => setNewService({...newService, name: e.target.value})}
-                                />
-                            </div>
-                            <div>
-                                <label className="block text-sm text-text-muted mb-2">Description</label>
-                                <textarea 
-                                    required
-                                    className="w-full bg-surface border border-border rounded-xl p-3 focus:border-blue-500 outline-none transition-all resize-none h-24"
-                                    placeholder="Short description of the service..."
-                                    value={newService.description}
-                                    onChange={e => setNewService({...newService, description: e.target.value})}
-                                ></textarea>
-                            </div>
-                            <div className="grid grid-cols-2 gap-4">
-                                <div>
-                                    <label className="block text-sm text-text-muted mb-2">Pricing Model</label>
-                                    <select 
-                                        className="w-full bg-surface border border-border rounded-xl p-3 focus:border-blue-500 outline-none transition-all"
-                                        value={newService.type}
-                                        onChange={e => setNewService({...newService, type: e.target.value})}
-                                    >
-                                        <option value="usage">Per Usage (Call/Request)</option>
-                                        <option value="time">Time Based (Hourly)</option>
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm text-text-muted mb-2">Cost (₹)</label>
-                                    <input 
-                                        type="number" 
-                                        required
-                                        className="w-full bg-surface border border-border rounded-xl p-3 focus:border-blue-500 outline-none transition-all"
-                                        placeholder="10"
-                                        value={newService.costPerUnit}
-                                        onChange={e => setNewService({...newService, costPerUnit: e.target.value})}
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm text-text-muted mb-2">Unit Name</label>
-                                <input 
-                                    type="text" 
-                                    required
-                                    className="w-full bg-surface border border-border rounded-xl p-3 focus:border-blue-500 outline-none transition-all"
-                                    placeholder="e.g. requests, hours, images"
-                                    value={newService.unitName}
-                                    onChange={e => setNewService({...newService, unitName: e.target.value})}
-                                />
-                            </div>
-                            <button 
-                                type="submit" 
-                                disabled={creatingService}
-                                className="w-full btn-primary py-3 flex justify-center items-center gap-2"
-                            >
-                                {creatingService ? 'Deploying...' : 'Deploy to Marketplace'}
-                            </button>
-                        </form>
-                    </div>
-
-                    {/* Service List */}
-                    <div className="glass-card p-8">
-                         <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                            <Box className="text-purple-400" /> Active Inventory
-                        </h2>
-                        <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
-                            {services.map(service => (
-                                <div key={service._id} className="p-4 rounded-xl bg-surface/50 border border-border flex justify-between items-center group hover:border-blue-500/30 transition-all">
-                                    <div>
-                                        <h3 className="font-bold">{service.name}</h3>
-                                        <p className="text-xs text-text-muted uppercase tracking-wider">{service.type} • ₹{service.costPerUnit}/{service.unitName}</p>
-                                    </div>
-                                    <div className="px-3 py-1 bg-green-500/10 text-green-500 text-xs font-bold rounded">LIVE</div>
-                                </div>
-                            ))}
-                            {services.length === 0 && <p className="text-text-muted text-center py-10">No services deployed yet.</p>}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
+        return <Navigate to="/admin" replace />;
     }
+
+
 
     // --- USER DASHBOARD ---
     return (
@@ -343,6 +247,49 @@ const Dashboard = () => {
                 type={toast.type} 
                 onClose={() => setToast({ ...toast, message: null })} 
             />
+            {/* Withdrawal Modal */}
+            <Modal
+                isOpen={withdrawModalOpen}
+                onClose={() => setWithdrawModalOpen(false)}
+                title="Withdraw Funds"
+            >
+                <div className="space-y-4">
+                    <p className="text-text-muted text-sm">
+                        Transfer funds from your wallet to your bank account via UPI.
+                    </p>
+                    <div>
+                        <label className="block text-sm font-medium mb-2">Amount (₹)</label>
+                        <input 
+                            type="number" 
+                            min="100"
+                            className="w-full bg-surface border border-border rounded-xl p-3 focus:border-primary outline-none transition-all"
+                            value={withdrawAmount}
+                            onChange={(e) => setWithdrawAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                        />
+                    </div>
+                     <div>
+                        <label className="block text-sm font-medium mb-2">UPI ID</label>
+                        <input 
+                            type="text" 
+                            className="w-full bg-surface border border-border rounded-xl p-3 focus:border-primary outline-none transition-all"
+                            placeholder="user@upi"
+                            value={upiId}
+                            onChange={(e) => setUpiId(e.target.value)}
+                        />
+                    </div>
+                    <button 
+                        onClick={handleWithdrawConfirm}
+                        disabled={withdrawLoading || !upiId}
+                        className={`w-full btn-primary py-3 flex justify-center items-center gap-2 ${withdrawLoading || !upiId ? 'opacity-70 cursor-not-allowed' : ''}`}
+                    >
+                        {withdrawLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : 'Confirm Withdrawal'}
+                    </button>
+                    {withdrawAmount > user?.walletBalance && (
+                        <p className="text-red-400 text-xs text-center">Insufficient wallet balance</p>
+                    )}
+                </div>
+            </Modal>
+
             <Modal
                 isOpen={topUpModalOpen}
                 onClose={() => setTopUpModalOpen(false)}
@@ -377,9 +324,14 @@ const Dashboard = () => {
                 <div className="glass-card p-6 flex-1 bg-gradient-to-br from-blue-900/20 to-surface/20">
                     <h2 className="text-xl font-semibold mb-2 text-text-muted">Wallet Balance</h2>
                     <div className="text-4xl font-bold font-mono text-green-400">₹{user?.walletBalance}</div>
-                    <button onClick={() => setTopUpModalOpen(true)} className="mt-4 btn-secondary flex items-center gap-2 text-sm">
-                        <Plus size={16} /> Add Funds (Mock)
-                    </button>
+                    <div className="flex gap-3 mt-4">
+                        <button onClick={() => setTopUpModalOpen(true)} className="btn-secondary flex items-center gap-2 text-sm">
+                            <Plus size={16} /> Add Funds
+                        </button>
+                        <button onClick={() => setWithdrawModalOpen(true)} className="px-4 py-2 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors text-sm font-bold flex items-center gap-2">
+                             Withdraw
+                        </button>
+                    </div>
                 </div>
                 
                 <div className="glass-card p-6 flex-1 flex flex-col justify-center items-center text-center">

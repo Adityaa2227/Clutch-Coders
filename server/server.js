@@ -30,7 +30,8 @@ app.use('/api/auth', require('./routes/auth'));
 app.use('/api/services', require('./routes/service'));
 app.use('/api/passes', require('./routes/pass'));
 app.use('/api/access', require('./routes/access')(io)); // Pass io to access routes for realtime updates
-app.use('/api/wallet', require('./routes/wallet'));
+app.use('/api/wallet', require('./routes/wallet')(io));
+app.use('/api/admin', require('./routes/admin')(io));
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -41,15 +42,21 @@ app.get('/', (req, res) => {
 
 // Socket.io Connection
 io.on('connection', (socket) => {
-  console.log('User connected:', socket.id);
+  // console.log('User connected:', socket.id);
   
   socket.on('join_room', (userId) => {
     socket.join(userId);
-    console.log(`User ${userId} joined room`);
+    // console.log(`User ${userId} joined room`);
+  });
+
+  socket.on('join_admin', () => {
+    // In production, we should verify the user token here again to ensure they are admin
+    socket.join('admin_room');
+    console.log(`Socket ${socket.id} joined ADMIN room`);
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected', socket.id);
+    // console.log('User disconnected', socket.id);
   });
 });
 

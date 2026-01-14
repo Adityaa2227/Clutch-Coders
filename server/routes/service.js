@@ -68,4 +68,51 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// @route   PUT api/services/:id
+// @desc    Update a service (e.g. toggle active)
+// @access  Private (Admin only)
+router.put('/:id', auth, async (req, res) => {
+    try {
+        let service = await Service.findById(req.params.id);
+        if (!service) return res.status(404).json({ msg: 'Service not found' });
+
+        // Check user role
+        // const user = await User.findById(req.user.id);
+        // if (user.role !== 'admin') return res.status(401).json({ msg: 'User not authorized' });
+
+        // Update fields
+        const { name, description, active, costPerUnit } = req.body;
+        if (name) service.name = name;
+        if (description) service.description = description;
+        if (active !== undefined) service.active = active;
+        if (costPerUnit) service.costPerUnit = costPerUnit;
+
+        await service.save();
+        res.json(service);
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
+// @route   DELETE api/services/:id
+// @desc    Delete a service
+// @access  Private (Admin only)
+router.delete('/:id', auth, async (req, res) => {
+    try {
+        const service = await Service.findById(req.params.id);
+        if (!service) return res.status(404).json({ msg: 'Service not found' });
+
+        // Check user role
+        // const user = await User.findById(req.user.id);
+        // if (user.role !== 'admin') return res.status(401).json({ msg: 'User not authorized' });
+
+        await Service.deleteOne({ _id: req.params.id }); 
+        res.json({ msg: 'Service removed' });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

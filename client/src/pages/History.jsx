@@ -83,13 +83,17 @@ const History = () => {
                                                     {new Date(tx.createdAt).toLocaleString()}
                                                 </td>
                                                 <td className="p-4">
-                                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${tx.type === 'deposit' ? 'bg-green-500/20 text-green-400' : 'bg-blue-500/20 text-blue-400'}`}>
+                                                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${
+                                                        tx.type === 'deposit' ? 'bg-green-500/20 text-green-400' : 
+                                                        tx.type === 'withdrawal' ? 'bg-red-500/20 text-red-400' :
+                                                        'bg-blue-500/20 text-blue-400'
+                                                    }`}>
                                                         {tx.type}
                                                     </span>
                                                 </td>
                                                 <td className="p-4 text-sm">{tx.description || '-'}</td>
-                                                <td className={`p-4 text-right font-mono font-bold ${tx.amount > 0 ? 'text-green-400' : 'text-white'}`}>
-                                                    {tx.amount > 0 ? '+' : ''}{tx.amount}
+                                                <td className={`p-4 text-right font-mono font-bold ${tx.type === 'deposit' ? 'text-green-400' : 'text-red-400'}`}>
+                                                    {tx.type === 'deposit' ? '+' : '-'}{Math.abs(tx.amount)}
                                                 </td>
                                                 <td className="p-4 text-center">
                                                     <span className={`text-xs px-2 py-1 rounded border font-bold uppercase
