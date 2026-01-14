@@ -5,10 +5,15 @@ import { ShoppingCart, Star, AlertCircle, CheckCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import Modal from '../components/Modal';
 
+import Toast from '../components/Toast';
+
 const Marketplace = () => {
     const { user, updateWallet } = useAuth();
     const [services, setServices] = useState([]);
     
+    // Toast State
+    const [toast, setToast] = useState({ message: null, type: 'success' });
+
     // Modal State
     const [selectedService, setSelectedService] = useState(null);
     const [amount, setAmount] = useState(1);
@@ -16,14 +21,17 @@ const Marketplace = () => {
     const [modalOpen, setModalOpen] = useState(false);
     const [statusMsg, setStatusMsg] = useState(null);
 
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
+
     useEffect(() => {
         api.get('/services').then(res => setServices(res.data));
     }, []);
 
     const openPurchaseModal = (service) => {
         if (!user) {
-            // In a real app, redirect to login or show login modal
-            alert("Please login first"); 
+            showToast("Please login first to purchase passes", "error"); 
             return;
         }
         setSelectedService(service);
@@ -54,6 +62,11 @@ const Marketplace = () => {
 
     return (
         <div>
+           <Toast 
+               message={toast.message} 
+               type={toast.type} 
+               onClose={() => setToast({ ...toast, message: null })} 
+           />
            {/* Purchase Modal */}
            <Modal 
               isOpen={modalOpen} 

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Wallet, LogOut, Loader2, Menu, X, User as UserIcon, Store, LayoutDashboard } from 'lucide-react';
+import { Wallet, LogOut, Loader2, Menu, X, User as UserIcon, Store, LayoutDashboard, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
@@ -53,7 +53,9 @@ const Navbar = () => {
                 {isAuthenticated && user && (
                     <>
                         <NavLink to="/services" icon={Store}>Marketplace</NavLink>
+                        <NavLink to="/history" icon={Clock}>History</NavLink>
                         <NavLink to="/dashboard" icon={LayoutDashboard}>Dashboard</NavLink>
+                        <NavLink to="/profile" icon={UserIcon}>Profile</NavLink>
                     </>
                 )}
               </div>
@@ -125,8 +127,14 @@ const Navbar = () => {
                             <Link to="/services" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
                                 <Store size={18} className="text-slate-400" /> Marketplace
                             </Link>
+                            <Link to="/history" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
+                                <Clock size={18} className="text-slate-400" /> History
+                            </Link>
                             <Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
                                 <LayoutDashboard size={18} className="text-slate-400" /> Dashboard
+                            </Link>
+                            <Link to="/profile" onClick={() => setIsMobileMenuOpen(false)} className="p-3 hover:bg-white/5 rounded-lg flex items-center gap-3">
+                                <UserIcon size={18} className="text-slate-400" /> Profile
                             </Link>
                         </>
                     ) : (

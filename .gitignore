@@ -1,8 +1,7 @@
 node_modules
 .DS_Store
 *.log
-.env
+
 client/node_modules
 server/node_modules
 server/.env
-client/.env

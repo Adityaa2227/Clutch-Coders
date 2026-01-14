@@ -5,7 +5,8 @@ const transactionSchema = new mongoose.Schema({
   amount: { type: Number, required: true },
   type: { type: String, enum: ['deposit', 'purchase'], required: true }, // deposit = add money, purchase = buy pass
   description: { type: String },
-  status: { type: String, default: 'success' }, // simplified for hackathon
+  status: { type: String, enum: ['pending', 'success', 'failed'], default: 'success' },
+  razorpayOrderId: { type: String },
   createdAt: { type: Date, default: Date.now },
 });
 

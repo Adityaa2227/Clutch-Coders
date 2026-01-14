@@ -5,6 +5,7 @@ const User = require('../models/User');
 const Service = require('../models/Service');
 const Pass = require('../models/Pass');
 const Transaction = require('../models/Transaction');
+const UsageLog = require('../models/UsageLog');
 
 // @route   POST api/passes/buy
 // @desc    Buy a pass for a service
@@ -104,6 +105,25 @@ router.post('/buy', auth, async (req, res) => {
 
     res.json({ msg: 'Pass purchased successfully', pass: passToReturn, walletBalance: user.walletBalance });
 
+  } catch (err) {
+    console.error(err.message);
+    res.status(500).send('Server Error');
+  }
+});
+
+
+
+// @route   GET api/passes/usage
+// @desc    Get user's usage history
+// @access  Private
+router.get('/usage', auth, async (req, res) => {
+  try {
+    console.log(`[PASS] Fetching usage logs for User: ${req.user.id}`);
+    const logs = await UsageLog.find({ userId: req.user.id })
+        .populate('serviceId', ['name', 'type', 'unitName'])
+        .sort({ timestamp: -1 });
+    console.log(`[PASS] Found ${logs.length} usage logs`);
+    res.json(logs);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');

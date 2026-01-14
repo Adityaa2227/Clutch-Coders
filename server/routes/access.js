@@ -81,6 +81,7 @@ module.exports = function (io) {
       await validPass.save();
 
       // 4. Log Usage
+      console.log(`[ACCESS] Logging usage for User: ${userId}, Service: ${serviceId}, Pass: ${validPass._id}`);
       const log = new UsageLog({
         userId,
         serviceId,
@@ -88,6 +89,7 @@ module.exports = function (io) {
         amountUsed: usageAmount
       });
       await log.save();
+      console.log('[ACCESS] Usage log saved:', log._id);
 
       // 5. Emit Realtime Update
       // Notify the user client to update their dashboard immediately

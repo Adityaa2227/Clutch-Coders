@@ -118,4 +118,41 @@ router.get('/user', auth, async (req, res) => {
   }
 });
 
+// @route   PUT api/auth/profile
+// @desc    Update user profile
+// @access  Private
+router.put('/profile', auth, async (req, res) => {
+    const { name, email } = req.body;
+
+    try {
+        const user = await User.findById(req.user.id);
+
+        if (name) user.name = name;
+        if (email && email !== user.email) {
+            // Check if email already exists
+            const userExists = await User.findOne({ email });
+            if (userExists) {
+                return res.status(400).json({ msg: 'Email already in use' });
+            }
+            user.email = email;
+        }
+
+        await user.save();
+
+        res.json({ 
+            msg: 'Profile Updated', 
+            user: { 
+                id: user.id, 
+                name: user.name, 
+                email: user.email, 
+                role: user.role, 
+                walletBalance: user.walletBalance 
+            } 
+        });
+    } catch (err) {
+        console.error(err.message);
+        res.status(500).send('Server Error');
+    }
+});
+
 module.exports = router;

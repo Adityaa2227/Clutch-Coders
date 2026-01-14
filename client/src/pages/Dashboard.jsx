@@ -7,15 +7,21 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Modal from '../components/Modal';
 
+import Toast from '../components/Toast';
+
 const Dashboard = () => {
     const { user, updateWallet } = useAuth();
     const socket = useSocket();
     const [passes, setPasses] = useState([]);
     const [loading, setLoading] = useState(true);
 
+    // Toast State
+    const [toast, setToast] = useState({ message: null, type: 'success' });
+
     // Modal State
     const [topUpModalOpen, setTopUpModalOpen] = useState(false);
     const [topUpAmount, setTopUpAmount] = useState(500);
+    const [topUpLoading, setTopUpLoading] = useState(false);
 
     // Admin State
     const [services, setServices] = useState([]);
@@ -23,6 +29,56 @@ const Dashboard = () => {
         name: '', description: '', type: 'usage', costPerUnit: '', unitName: ''
     });
     const [creatingService, setCreatingService] = useState(false);
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
+
+    // Countdown Timer Component
+    const CountdownTimer = ({ expiryDate }) => {
+        const [timeLeft, setTimeLeft] = useState(calculateTimeLeft());
+
+        function calculateTimeLeft() {
+            const difference = Date.parse(expiryDate) - Date.now();
+            let timeLeft = {};
+
+            if (difference > 0) {
+                timeLeft = {
+                    days: Math.floor(difference / (1000 * 60 * 60 * 24)),
+                    hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
+                    minutes: Math.floor((difference / 1000 / 60) % 60),
+                    seconds: Math.floor((difference / 1000) % 60)
+                };
+            }
+            return timeLeft;
+        }
+
+        useEffect(() => {
+            const timer = setInterval(() => {
+                setTimeLeft(calculateTimeLeft());
+            }, 1000);
+            return () => clearInterval(timer);
+        }, [expiryDate]);
+
+        const timerComponents = [];
+
+        Object.keys(timeLeft).forEach(interval => {
+            if (!timeLeft[interval] && timeLeft[interval] !== 0) return;
+            
+            timerComponents.push(
+                <div key={interval} className="flex flex-col items-center bg-blue-500/10 rounded-lg p-2 min-w-[50px]">
+                    <span className="text-lg font-bold font-mono text-blue-300">{timeLeft[interval]}</span>
+                    <span className="text-[10px] uppercase text-text-muted">{interval}</span>
+                </div>
+            );
+        });
+
+        return (
+            <div className="flex gap-2 justify-center py-2">
+                {timerComponents.length ? timerComponents : <span className="text-red-400 font-bold">Expired</span>}
+            </div>
+        );
+    };
 
     const fetchPasses = async () => {
         try {
@@ -65,13 +121,65 @@ const Dashboard = () => {
     }, [socket]);
 
     const handleTopUpConfirm = async () => {
+        setTopUpLoading(true); 
         try {
-            const res = await api.post('/wallet/topup', { amount: topUpAmount });
-            updateWallet(res.data.walletBalance);
-            setTopUpModalOpen(false);
-            // Optional: Add toast notification here
+            // 1. Create Order
+            const { data: order } = await api.post('/wallet/create-order', { amount: topUpAmount });
+            
+            // 2. Open Razorpay
+            const options = {
+                key: order.key_id, // Get Key from backend response
+                amount: order.amount,
+                currency: order.currency,
+                name: "FlexPass",
+                description: "Wallet Top-up",
+                order_id: order.id,
+                handler: async function (response) {
+                    // 3. Verify Payment
+                    try {
+                        const verifyRes = await api.post('/wallet/verify-payment', {
+                            razorpay_order_id: response.razorpay_order_id,
+                            razorpay_payment_id: response.razorpay_payment_id,
+                            razorpay_signature: response.razorpay_signature,
+                            amount: topUpAmount // Amount to add to wallet
+                        });
+                        
+                        updateWallet(verifyRes.data.walletBalance);
+                        setTopUpModalOpen(false);
+                        showToast("Payment Successful! Wallet Updated.", 'success');
+                    } catch (err) {
+                        console.error(err);
+                        showToast("Payment Verification Failed", 'error');
+                    }
+                },
+                prefill: {
+                    name: user?.name,
+                    email: user?.email,
+                },
+                theme: {
+                    color: "#3B82F6"
+                }
+            };
+
+            const rzp = new window.Razorpay(options);
+            rzp.on('payment.failed', async function (response){
+                showToast("Payment Failed: " + response.error.description, 'error');
+                try {
+                    await api.post('/payment-failed', { 
+                        razorpay_order_id: response.error.metadata.order_id,
+                        reason: response.error.description 
+                    });
+                } catch (e) {
+                    console.error("Failed to log failure", e);
+                }
+            });
+            rzp.open();
+            
         } catch (err) {
-            alert('Topup failed');
+            console.error(err);
+            showToast('Order Creation failed. Check console.', 'error');
+        } finally {
+            setTopUpLoading(false);
         }
     };
 
@@ -82,10 +190,10 @@ const Dashboard = () => {
             const res = await api.post('/services', newService);
             setServices([...services, res.data]);
             setNewService({ name: '', description: '', type: 'usage', costPerUnit: '', unitName: '' });
-            alert('Service Deployed Successfully!');
+            showToast('Service Deployed Successfully!', 'success');
         } catch (err) {
             console.error(err);
-            alert('Failed to deploy service.');
+            showToast('Failed to deploy service.', 'error');
         } finally {
             setCreatingService(false);
         }
@@ -99,6 +207,11 @@ const Dashboard = () => {
     if (user?.role === 'admin') {
         return (
             <div className="space-y-8">
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast({ ...toast, message: null })} 
+                />
                 <div className="flex items-center gap-3 mb-8">
                     <Shield className="text-blue-500 w-8 h-8" />
                     <h1 className="text-3xl font-bold">Admin Control Center</h1>
@@ -225,6 +338,11 @@ const Dashboard = () => {
     // --- USER DASHBOARD ---
     return (
         <div className="space-y-8">
+            <Toast 
+                message={toast.message} 
+                type={toast.type} 
+                onClose={() => setToast({ ...toast, message: null })} 
+            />
             <Modal
                 isOpen={topUpModalOpen}
                 onClose={() => setTopUpModalOpen(false)}
@@ -246,9 +364,10 @@ const Dashboard = () => {
                     </div>
                     <button 
                         onClick={handleTopUpConfirm}
-                        className="w-full btn-primary py-3"
+                        disabled={topUpLoading}
+                        className={`w-full btn-primary py-3 ${topUpLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
                     >
-                        Confirm Top Up
+                        {topUpLoading ? 'Processing...' : 'Confirm Top Up'}
                     </button>
                 </div>
             </Modal>
@@ -317,10 +436,14 @@ const Dashboard = () => {
                                                     />
                                                 </div>
                                             </div>
+
                                         ) : (
-                                            <div className="flex items-center gap-2 text-yellow-400">
-                                                <Clock size={16} />
-                                                <span>Expires: {new Date(pass.expiresAt).toLocaleDateString()}</span>
+                                            <div className="flex flex-col gap-2 mt-2">
+                                                <div className="flex items-center gap-2 text-yellow-400 text-sm">
+                                                    <Clock size={16} />
+                                                    <span>Expires: {new Date(pass.expiresAt).toLocaleDateString()}</span>
+                                                </div>
+                                                <CountdownTimer expiryDate={pass.expiresAt} />
                                             </div>
                                         )}
                                     </div>
