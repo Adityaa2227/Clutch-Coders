@@ -185,7 +185,8 @@ router.post('/buy', auth, async (req, res) => {
     }
 
     // Send Email Receipt
-    await EmailService.sendTransactionReceipt(user, transaction, service.name);
+    // Send Email Receipt (Non-blocking)
+    EmailService.sendTransactionReceipt(user, transaction, service.name).catch(err => console.error("Email Error:", err.message));
 
     res.json({ 
         msg: 'Pass purchased successfully', 

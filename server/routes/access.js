@@ -29,7 +29,8 @@ module.exports = function (io) {
 
       if (!passes || passes.length === 0) {
         // Log Failure
-        await new AccessLog({ userId, serviceId, status: 'failed', failureReason: 'No active pass', ip: req.ip }).save();
+        // Log Failure (Non-blocking)
+        new AccessLog({ userId, serviceId, status: 'failed', failureReason: 'No active pass', ip: req.ip }).save().catch(e => console.error("Log Error:", e.message));
         io.to('admin_room').emit('access_log', { userId, serviceId, status: 'failed', reason: 'No active pass', timestamp: new Date() });
         return res.status(403).json({ msg: 'No active pass found for this service', accessGranted: false });
       }
@@ -57,7 +58,7 @@ module.exports = function (io) {
       }
 
       if (!validPass) {
-        await new AccessLog({ userId, serviceId, status: 'failed', failureReason: 'Passes expired/empty', ip: req.ip }).save();
+        new AccessLog({ userId, serviceId, status: 'failed', failureReason: 'Passes expired/empty', ip: req.ip }).save().catch(e => console.error("Log Error:", e.message));
         io.to('admin_room').emit('access_log', { userId, serviceId, status: 'failed', reason: 'Passes expired', timestamp: new Date() });
         return res.status(403).json({ msg: 'All passes expired or empty', accessGranted: false });
       }
@@ -68,7 +69,7 @@ module.exports = function (io) {
 
       if (service && service.type === 'usage') {
         if (validPass.remainingAmount < usageAmount) {
-             await new AccessLog({ userId, serviceId, status: 'failed', failureReason: 'Insufficient usage balance', ip: req.ip }).save();
+             new AccessLog({ userId, serviceId, status: 'failed', failureReason: 'Insufficient usage balance', ip: req.ip }).save().catch(e => console.error("Log Error:", e.message));
             return res.status(403).json({ msg: 'Not enough usage remaining in pass', accessGranted: false });
         }
         validPass.remainingAmount -= usageAmount;
@@ -91,8 +92,8 @@ module.exports = function (io) {
       console.log('[ACCESS] Usage log saved:', log._id);
 
       // Log Access Success
-      const accessLog = new AccessLog({ userId, serviceId, status: 'success', ip: req.ip });
-      await accessLog.save();
+      // Log Access Success (Non-blocking)
+      new AccessLog({ userId, serviceId, status: 'success', ip: req.ip }).save().catch(e => console.error("Log Error:", e.message));
 
       // 5. Emit Realtime Updates
       // Notify User

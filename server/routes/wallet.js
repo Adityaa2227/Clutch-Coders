@@ -130,7 +130,8 @@ module.exports = function(io) {
         if(transaction) {
             io.to('admin_room').emit('payment_success', transaction);
             // Send Email Receipt
-            await EmailService.sendTransactionReceipt(user, transaction);
+            // Send Email Receipt (Non-blocking)
+            EmailService.sendTransactionReceipt(user, transaction).catch(err => console.error("Email Error:", err.message));
         }
     
         res.json({ msg: 'Payment Verified', walletBalance: user.walletBalance, transaction });
@@ -193,7 +194,8 @@ module.exports = function(io) {
         io.to('admin_room').emit('transaction_created', transaction);
 
         // Send Email Receipt
-        await EmailService.sendTransactionReceipt(user, transaction);
+        // Send Email Receipt (Non-blocking)
+        EmailService.sendTransactionReceipt(user, transaction).catch(err => console.error("Email Error:", err.message));
 
         res.json({ msg: 'Withdrawal Successful', walletBalance: user.walletBalance, transaction });
 

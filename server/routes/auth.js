@@ -65,8 +65,8 @@ router.post('/request-otp', async (req, res) => {
             { upsert: true, new: true } 
         );
 
-        // 6. Send Email
-        await EmailService.sendOTP(email, otp);
+        // 6. Send Email (Non-blocking)
+        EmailService.sendOTP(email, otp).catch(e => console.error("OTP Email Error:", e));
 
         res.json({ msg: 'OTP sent to email' });
 
