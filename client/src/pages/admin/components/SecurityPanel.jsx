@@ -61,6 +61,49 @@ const SecurityPanel = () => {
         } catch (err) { alert("Lock Failed"); }
     }
 
+    const renderOverview = () => (
+        <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard icon={AlertTriangle} label="Failed Logins (1h)" value={stats?.failedLoginAttempts || 0} color="text-red-400" />
+                <MetricCard icon={Key} label="OTP Spikes (1h)" value={stats?.otpRequestsLastHour || 0} color="text-yellow-400" />
+                <MetricCard icon={Activity} label="Active Sessions" value={stats?.activeUserSessions || 0} color="text-blue-400" />
+                <MetricCard icon={UserX} label="Flagged Users" value={stats?.flaggedUsersCount || 0} color="text-orange-400" />
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                 {/* Recent Audit Logs */}
+                 <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                     <h3 className="font-bold mb-4 flex items-center gap-2"> <FileText size={18} /> Recent Audit Logs</h3>
+                     <div className="space-y-2 h-64 overflow-y-auto custom-scrollbar">
+                         {auditLogs.slice(0, 10).map(log => (
+                             <div key={log._id} className="text-xs p-2 bg-white/5 rounded border border-white/5 flex justify-between">
+                                 <div>
+                                     <span className="font-bold text-blue-300">{log.action}</span>
+                                     <span className="text-white/50 ml-2">on {log.targetEntity}</span>
+                                 </div>
+                                 <span className="text-white/30">{new Date(log.createdAt).toLocaleTimeString()}</span>
+                             </div>
+                         ))}
+                     </div>
+                 </div>
+
+                 {/* Blocklist Preview */}
+                 <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                     <h3 className="font-bold mb-4 flex items-center gap-2"> <Ban size={18} /> Active Blocks</h3>
+                     <div className="space-y-2">
+                        {blockList.length === 0 && <div className="text-white/30">No active blocks</div>}
+                        {blockList.slice(0, 5).map(item => (
+                            <div key={item._id} className="flex justify-between items-center bg-red-500/10 p-2 rounded">
+                                <span className="text-red-300 text-sm font-mono">{item.value} ({item.type})</span>
+                                <button className="text-xs text-white/50 hover:text-white" onClick={() => api.delete(`/security/block/${item._id}`).then(fetchData)}>Unblock</button>
+                            </div>
+                        ))}
+                     </div>
+                 </div>
+            </div>
+        </div>
+    );
+
     const renderAuth = () => (
         <div className="space-y-6">
             <div className="bg-white/5 border border-white/10 rounded-xl p-6">
