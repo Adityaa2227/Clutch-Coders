@@ -19,8 +19,8 @@ const EmailLogSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['SENT', 'FAILED'],
-        default: 'SENT'
+        enum: ['PENDING', 'SENT', 'FAILED'],
+        default: 'PENDING'
     },
     metadata: {
         type: Object,

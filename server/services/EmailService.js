@@ -44,25 +44,41 @@ class EmailService {
         }
     }
 
-    async logEmail(recipient, subject, type, status, htmlContent, metadata = {}, error = null) {
+    async createLog(recipient, subject, type, htmlContent, metadata = {}) {
         try {
-            await EmailLog.create({
+            return await EmailLog.create({
                 recipient,
                 subject,
                 body: htmlContent,
                 type,
-                status,
-                metadata,
+                status: 'PENDING',
+                metadata
+            });
+        } catch (err) {
+            console.error('EmailLog Create Error:', err);
+            return null;
+        }
+    }
+
+    async updateLogAndFinalize(logId, status, error = null) {
+        if (!logId) return;
+        try {
+            await EmailLog.findByIdAndUpdate(logId, {
+                status: status,
                 errorMessage: error ? error.message : null
             });
         } catch (err) {
-            console.error('EmailLog Error:', err);
+             console.error('EmailLog Update Error:', err);
         }
     }
 
     async sendEmail(to, subject, htmlContent, type, metadata = {}) {
         if (!to) return;
         
+        // 1. Log START (Pending)
+        const logEntry = await this.createLog(to, subject, type, htmlContent, metadata);
+        const logId = logEntry ? logEntry._id : null;
+
         try {
             // Ethereal check if not ready
             if (!this.transporter && this.mode === 'TEST') {
@@ -79,15 +95,16 @@ class EmailService {
 
             if (this.mode === 'TEST') {
                 console.log('📧 Preview URL: %s', nodemailer.getTestMessageUrl(info));
-                // console.log(`[Mock Email] To: ${to} | Subject: ${subject}`);
             }
 
-            await this.logEmail(to, subject, type, 'SENT', htmlContent, metadata);
+            // 2. Log SUCCESS (Sent)
+            await this.updateLogAndFinalize(logId, 'SENT');
             return true;
 
         } catch (error) {
             console.error('Email Send Error:', error);
-            await this.logEmail(to, subject, type, 'FAILED', htmlContent, metadata, error);
+            // 3. Log FAILURE
+            await this.updateLogAndFinalize(logId, 'FAILED', error);
             return false;
         }
     }
