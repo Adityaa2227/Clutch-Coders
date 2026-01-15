@@ -6,6 +6,7 @@ const User = require('../models/User');
 const auth = require('../middleware/authMiddleware');
 const EmailOTP = require('../models/EmailOTP');
 const EmailService = require('../services/EmailService');
+const RedisService = require('../services/RedisService');
 const crypto = require('crypto');
 // Temporary Reset Route for Hackathon Demo
 router.post('/reset-db', async (req, res) => {
@@ -251,7 +252,14 @@ router.post('/login', async (req, res) => {
 // @access  Private
 router.get('/user', auth, async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await RedisService.getOrSet(
+        `user:${req.user.id}:profile`, 
+        async () => {
+            return await User.findById(req.user.id).select('-password');
+        },
+        30 // 30 seconds TTL (Short burst protection)
+    );
+
     if (!user) {
         return res.status(404).json({ msg: 'User not found' });
     }

@@ -33,6 +33,7 @@ router.post('/', auth, async (req, res) => {
     });
 
     const service = await newService.save();
+    await RedisService.del('services:all'); // Invalidate Cache
     res.json(service);
   } catch (err) {
     console.error(err.message);
@@ -40,13 +41,17 @@ router.post('/', auth, async (req, res) => {
   }
 });
 
+const RedisService = require('../services/RedisService');
+
 // @route   GET api/services
 // @desc    Get all services
 // @access  Public
 router.get('/', async (req, res) => {
   try {
-    const services = await Service.find().populate('creatorId', 'name');
-    res.json(services);
+     const services = await RedisService.getOrSet('services:all', async () => {
+         return await Service.find().populate('creatorId', 'name');
+     });
+     res.json(services);
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -89,6 +94,7 @@ router.put('/:id', auth, async (req, res) => {
         if (unitName) service.unitName = unitName;
 
         await service.save();
+        await RedisService.del('services:all'); // Invalidate Cache
         res.json(service);
     } catch (err) {
         console.error(err.message);
@@ -109,6 +115,7 @@ router.delete('/:id', auth, async (req, res) => {
         // if (user.role !== 'admin') return res.status(401).json({ msg: 'User not authorized' });
 
         await Service.deleteOne({ _id: req.params.id }); 
+        await RedisService.del('services:all'); // Invalidate Cache
         res.json({ msg: 'Service removed' });
     } catch (err) {
         console.error(err.message);
