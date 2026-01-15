@@ -38,6 +38,7 @@ app.use('/api/passes', require('./routes/pass'));
 app.use('/api/access', require('./routes/access')(io)); 
 app.use('/api/wallet', require('./routes/wallet')(io));
 app.use('/api/admin', require('./routes/admin')(io));
+app.use('/api/security', require('./routes/security')(io)); // New Security Panel Routes
 app.use('/api/rewards', require('./routes/rewards')(io));
 app.use('/api/support', require('./routes/support'));
 
