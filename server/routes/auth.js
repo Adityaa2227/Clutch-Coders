@@ -21,10 +21,12 @@ router.post('/reset-db', async (req, res) => {
     }
 });
 
+const rateLimit = require('../middleware/rateLimiter');
+
 // @route   POST api/auth/request-otp
 // @desc    Request Email Verification OTP
 // @access  Public
-router.post('/request-otp', async (req, res) => {
+router.post('/request-otp', rateLimit(3, 300, 'Too many OTP requests. Try again in 5 minutes.'), async (req, res) => {
     const { email } = req.body;
     if (!email) return res.status(400).json({ msg: 'Email is required' });
 

@@ -6,6 +6,7 @@ const Transaction = require('../models/Transaction');
 const Razorpay = require('razorpay');
 const crypto = require('crypto');
 const EmailService = require('../services/EmailService');
+const RedisService = require('../services/RedisService'); // Redis Support
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID,
@@ -66,6 +67,8 @@ module.exports = function(io) {
         } catch (err) {
             console.error(err);
             res.status(500).send('Server Error');
+        } finally {
+            if (releaseLock) await releaseLock(); // Release lock
         }
     });
     
@@ -74,7 +77,14 @@ module.exports = function(io) {
     // @access  Private
     router.post('/verify-payment', auth, async (req, res) => {
       const { razorpay_order_id, razorpay_payment_id, razorpay_signature, amount } = req.body;
-    
+      const userId = req.user.id;
+      
+      // 1. Acquire Distributed Lock
+      const releaseLock = await RedisService.acquireLock(`wallet_lock:${userId}`, 10);
+      if (!releaseLock) {
+           return res.status(429).json({ msg: 'Wallet operation in progress. Please wait.' });
+      }
+
       try {
         // 1. Verify Signature
         const body = razorpay_order_id + "|" + razorpay_payment_id;
@@ -139,6 +149,8 @@ module.exports = function(io) {
       } catch (err) {
         console.error(err);
         res.status(500).send('Payment Verification Failed');
+      } finally {
+        if (releaseLock) await releaseLock(); 
       }
     });
     
@@ -163,6 +175,13 @@ module.exports = function(io) {
     // @access  Private
     router.post('/withdraw', auth, async (req, res) => {
       const { amount, upiId } = req.body;
+      const userId = req.user.id;
+
+      // 1. Acquire Distributed Lock
+      const releaseLock = await RedisService.acquireLock(`wallet_lock:${userId}`, 15);
+      if (!releaseLock) {
+          return res.status(429).json({ msg: 'Wallet operation in progress. Please wait.' });
+      }
       
       if (!amount || amount <= 0) {
           return res.status(400).json({ msg: 'Invalid amount' });
@@ -202,6 +221,8 @@ module.exports = function(io) {
       } catch (err) {
         console.error(err);
         res.status(500).send('Server Error');
+      } finally {
+        if (releaseLock) await releaseLock();
       }
     });
 
