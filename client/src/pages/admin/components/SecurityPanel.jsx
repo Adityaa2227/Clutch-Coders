@@ -10,8 +10,7 @@ const SecurityPanel = () => {
     const [stats, setStats] = useState(null);
     const [auditLogs, setAuditLogs] = useState([]);
     const [blockList, setBlockList] = useState([]);
-    const [activeSection, setActiveSection] = useState('overview');
-    const [loading, setLoading] = useState(true);
+    const [authData, setAuthData] = useState([]);
 
     // Fetch Initial Data
     useEffect(() => {
@@ -22,75 +21,153 @@ const SecurityPanel = () => {
 
     const fetchData = async () => {
         try {
-            const [statsRes, logsRes, blockRes] = await Promise.all([
+            const [statsRes, logsRes, blockRes, authRes] = await Promise.all([
                 api.get('/security/stats'),
                 api.get('/security/audit-logs'),
-                api.get('/security/blocklist')
+                api.get('/security/blocklist'),
+                api.get('/security/auth-monitoring') // New endpoint usage
             ]);
             setStats(statsRes.data);
             setAuditLogs(logsRes.data);
             setBlockList(blockRes.data);
+            setAuthData(authRes.data.recentOTPs || []);
             setLoading(false);
         } catch (err) {
             console.error("Security Data Error", err);
         }
     };
 
-    const handleAction = async (action, payload) => {
+    const handleBlock = async (e) => {
+        e.preventDefault();
+        const type = e.target.type.value;
+        const value = e.target.value.value;
+        const reason = e.target.reason.value;
         try {
-            if (action === 'BLOCK_IP') {
-                await api.post('/security/block', { type: 'IP', value: payload, reason: 'Manual Admin Block' });
-            }
-            if (action === 'KILL_SESSION') {
-                await api.post('/security/session/kill', { userId: payload });
-            }
+            await api.post('/security/block', { type, value, reason });
+            e.target.reset();
             fetchData();
-        } catch (err) {
-            alert("Action Failed: " + err.message);
-        }
+        } catch (err) { alert(err.response?.data?.msg || "Block Failed"); }
     };
 
-    const renderOverview = () => (
+    const handleWalletLock = async (userId) => {
+        const reason = prompt("Reason for locking wallet:");
+        if(!reason) return;
+        try {
+            await api.post('/security/wallet/lock', { userId, reason });
+            alert("Wallet Locked");
+            fetchData();
+        } catch (err) { alert("Lock Failed"); }
+    }
+
+    const renderAuth = () => (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard icon={AlertTriangle} label="Failed Logins (1h)" value={stats?.failedLoginAttempts || 0} color="text-red-400" />
-                <MetricCard icon={Key} label="OTP Spikes (1h)" value={stats?.otpRequestsLastHour || 0} color="text-yellow-400" />
-                <MetricCard icon={Activity} label="Active Sessions" value={stats?.activeUserSessions || 0} color="text-blue-400" />
-                <MetricCard icon={UserX} label="Flagged Users" value={stats?.flaggedUsersCount || 0} color="text-orange-400" />
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 {/* Recent Audit Logs */}
-                 <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                     <h3 className="font-bold mb-4 flex items-center gap-2"> <FileText size={18} /> Recent Audit Logs</h3>
-                     <div className="space-y-2 h-64 overflow-y-auto custom-scrollbar">
-                         {auditLogs.slice(0, 10).map(log => (
-                             <div key={log._id} className="text-xs p-2 bg-white/5 rounded border border-white/5 flex justify-between">
-                                 <div>
-                                     <span className="font-bold text-blue-300">{log.action}</span>
-                                     <span className="text-white/50 ml-2">on {log.targetEntity}</span>
-                                 </div>
-                                 <span className="text-white/30">{new Date(log.createdAt).toLocaleTimeString()}</span>
-                             </div>
-                         ))}
-                     </div>
-                 </div>
-
-                 {/* Blocklist Preview */}
-                 <div className="bg-white/5 border border-white/10 rounded-xl p-6">
-                     <h3 className="font-bold mb-4 flex items-center gap-2"> <Ban size={18} /> Active Blocks</h3>
-                     <div className="space-y-2">
-                        {blockList.length === 0 && <div className="text-white/30">No active blocks</div>}
-                        {blockList.slice(0, 5).map(item => (
-                            <div key={item._id} className="flex justify-between items-center bg-red-500/10 p-2 rounded">
-                                <span className="text-red-300 text-sm font-mono">{item.value} ({item.type})</span>
-                                <button className="text-xs text-white/50 hover:text-white" onClick={() => api.delete(`/security/block/${item._id}`).then(fetchData)}>Unblock</button>
-                            </div>
-                        ))}
-                     </div>
+            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                 <h3 className="font-bold mb-4 flex items-center gap-2"><Key className="text-yellow-400" size={18} /> OTP Activity Stream</h3>
+                 <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead className="text-white/40 border-b border-white/5">
+                            <tr>
+                                <th className="p-3">Time</th>
+                                <th className="p-3">Email</th>
+                                <th className="p-3">Status</th>
+                                <th className="p-3">Attempts</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/5">
+                            {authData.map(otp => (
+                                <tr key={otp._id} className="hover:bg-white/5">
+                                    <td className="p-3">{new Date(otp.createdAt).toLocaleTimeString()}</td>
+                                    <td className="p-3">{otp.email}</td>
+                                    <td className="p-3">
+                                        <span className={`px-2 py-1 rounded text-xs ${otp.attempts > 3 ? 'bg-red-500/20 text-red-400' : 'bg-green-500/20 text-green-400'}`}>
+                                            {otp.attempts > 3 ? 'Flagged' : 'Normal'}
+                                        </span>
+                                    </td>
+                                    <td className="p-3">{otp.attempts}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
                  </div>
             </div>
         </div>
+    );
+
+    const renderWallet = () => (
+        <div className="space-y-6">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <h3 className="font-bold mb-4 flex items-center gap-2"><CreditCard className="text-blue-400" size={18} /> Wallet Security Controls</h3>
+                <div className="flex gap-4 mb-6">
+                    <div className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex-1">
+                        <h4 className="font-bold text-red-400 mb-2">Emergency Wallet Lock</h4>
+                        <p className="text-xs text-white/50 mb-3">Instantly freeze funds for suspicious user ID.</p>
+                        <div className="flex gap-2">
+                            <input id="lockUserId" type="text" placeholder="User ID..." className="bg-black/20 border border-white/10 rounded px-3 py-1 text-sm flex-1" />
+                            <button 
+                                onClick={() => handleWalletLock(document.getElementById('lockUserId').value)}
+                                className="bg-red-500 hover:bg-red-600 px-4 py-1 rounded text-sm font-bold"
+                            >
+                                LOCK
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+
+    const renderBlocklist = () => (
+         <div className="space-y-6">
+            <div className="bg-white/5 border border-white/10 rounded-xl p-6">
+                <h3 className="font-bold mb-4 flex items-center gap-2"><Ban className="text-red-400" size={18} /> Add to Blocklist</h3>
+                <form onSubmit={handleBlock} className="flex flex-wrap gap-4 items-end">
+                    <div>
+                        <label className="block text-xs text-white/50 mb-1">Type</label>
+                        <select name="type" className="bg-black/20 border border-white/10 rounded px-3 py-2 text-sm text-white">
+                            <option value="IP">IP Address</option>
+                            <option value="EMAIL">Email Address</option>
+                            <option value="USER_ID">User ID</option>
+                        </select>
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="block text-xs text-white/50 mb-1">Value</label>
+                        <input name="value" type="text" placeholder="192.168.x.x or email@..." className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-sm" required />
+                    </div>
+                    <div className="flex-1 min-w-[200px]">
+                        <label className="block text-xs text-white/50 mb-1">Reason</label>
+                        <input name="reason" type="text" placeholder="e.g. DDOS attempt" className="w-full bg-black/20 border border-white/10 rounded px-3 py-2 text-sm" required />
+                    </div>
+                    <button type="submit" className="bg-red-500 hover:bg-red-600 px-6 py-2 rounded text-sm font-bold h-[38px]">BLOCK</button>
+                </form>
+            </div>
+
+            <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                <table className="w-full text-left text-sm">
+                    <thead className="bg-white/5 text-white/50 uppercase text-xs">
+                        <tr>
+                            <th className="p-4">Type</th>
+                            <th className="p-4">Value</th>
+                            <th className="p-4">Reason</th>
+                            <th className="p-4">Date</th>
+                            <th className="p-4">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-white/5">
+                        {blockList.map(item => (
+                            <tr key={item._id} className="hover:bg-white/5">
+                                <td className="p-4"><span className="bg-white/10 px-2 py-1 rounded text-xs font-bold">{item.type}</span></td>
+                                <td className="p-4 font-mono text-white/80">{item.value}</td>
+                                <td className="p-4 text-white/60">{item.reason}</td>
+                                <td className="p-4 text-white/40">{new Date(item.createdAt).toLocaleDateString()}</td>
+                                <td className="p-4">
+                                    <button onClick={() => api.delete(`/security/block/${item._id}`).then(fetchData)} className="text-red-400 hover:text-red-300 text-xs font-bold">UNBLOCK</button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+            </div>
+         </div>
     );
 
     return (
@@ -99,16 +176,17 @@ const SecurityPanel = () => {
             <div className="flex flex-wrap gap-2 pb-4 border-b border-white/10">
                 <NavBtn active={activeSection === 'overview'} onClick={() => setActiveSection('overview')} icon={Shield} label="Overview" />
                 <NavBtn active={activeSection === 'auth'} onClick={() => setActiveSection('auth')} icon={Key} label="Auth & OTP" />
-                <NavBtn active={activeSection === 'sessions'} onClick={() => setActiveSection('sessions')} icon={Activity} label="Sessions" />
                 <NavBtn active={activeSection === 'wallet'} onClick={() => setActiveSection('wallet')} icon={CreditCard} label="Wallet Sec" />
-                <NavBtn active={activeSection === 'api'} onClick={() => setActiveSection('api')} icon={Server} label="API Health" />
                 <NavBtn active={activeSection === 'logs'} onClick={() => setActiveSection('logs')} icon={FileText} label="Audit Logs" />
                 <NavBtn active={activeSection === 'blocklist'} onClick={() => setActiveSection('blocklist')} icon={Ban} label="Blocklist" />
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
                 {activeSection === 'overview' && renderOverview()}
+                {activeSection === 'auth' && renderAuth()}
+                {activeSection === 'wallet' && renderWallet()}
+                {activeSection === 'blocklist' && renderBlocklist()}
                 
                 {activeSection === 'logs' && (
                     <div className="bg-white/5 rounded-xl border border-white/10 overflow-hidden">
@@ -141,15 +219,6 @@ const SecurityPanel = () => {
                                 ))}
                             </tbody>
                         </table>
-                    </div>
-                )}
-
-                {/* Placeholder for other sections (Extensible) */}
-                {['auth', 'sessions', 'wallet', 'api', 'blocklist'].includes(activeSection) && (
-                    <div className="flex flex-col items-center justify-center h-64 text-white/30 border border-white/10 rounded-xl bg-white/5 border-dashed">
-                        <Lock className="w-12 h-12 mb-4 opacity-50" />
-                        <h3 className="text-lg font-bold">Secure Zone</h3>
-                        <p>This module is monitored. (Placeholder for UI - Backend Ready)</p>
                     </div>
                 )}
             </div>
