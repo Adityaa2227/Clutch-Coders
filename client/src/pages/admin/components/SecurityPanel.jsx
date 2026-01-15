@@ -11,6 +11,8 @@ const SecurityPanel = () => {
     const [auditLogs, setAuditLogs] = useState([]);
     const [blockList, setBlockList] = useState([]);
     const [authData, setAuthData] = useState([]);
+    const [activeSection, setActiveSection] = useState('overview');
+    const [loading, setLoading] = useState(true);
 
     // Fetch Initial Data
     useEffect(() => {
