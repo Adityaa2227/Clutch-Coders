@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../../../api';
 import { 
     Shield, Lock, AlertTriangle, Eye, Activity, Key, CreditCard, 
-    FileText, UserX, Server, Mail, RefreshCw, Ban, Search, CheckCircle, Termianl
+    FileText, UserX, Server, Mail, RefreshCw, Ban, Search, CheckCircle, Terminal
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
