@@ -77,6 +77,11 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: 'REGISTER_SUCCESS', payload: res.data });
   };
 
+  const verifyOTP = async (email, otp, name, password) => {
+      const res = await api.post('/auth/verify-otp', { email, otp, name, password });
+      dispatch({ type: 'REGISTER_SUCCESS', payload: res.data });
+  };
+
   const logout = () => dispatch({ type: 'LOGOUT' });
 
   const updateWallet = (newBalance) => dispatch({ type: 'UPDATE_WALLET', payload: newBalance });
@@ -86,7 +91,7 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ ...state, loadUser, login, register, logout, updateWallet }}>
+    <AuthContext.Provider value={{ ...state, loadUser, login, register, verifyOTP, logout, updateWallet }}>
       {children}
     </AuthContext.Provider>
   );

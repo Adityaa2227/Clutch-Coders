@@ -83,13 +83,14 @@ router.post('/buy', auth, async (req, res) => {
         
         // ... Referral Logic (kept as is, just ensuring variable scope doesn't break) ...
         // 2. REFERRAL ENGINE
-        // Check if this is the user's FIRST purchase ever (to trigger referral reward)
-        const purchaseCount = await Transaction.countDocuments({ userId: user.id, type: 'purchase' });
-        
-        if (purchaseCount === 1 && user.referredBy) {
+        // 2. REFERRAL ENGINE
+        // Check if user has a pending referral waiting to be completed
+        if (user.referredBy) {
             const Referral = require('../models/Referral');
             const referral = await Referral.findOne({ referrerId: user.referredBy, refereeId: user.id, status: 'pending' });
             
+            console.log(`[REFERRAL] Checking for user ${user.id}: Found? ${!!referral}`);
+
             if (referral) {
                 const REFERRER_REWARD = 5; 
                 const REFEREE_REWARD = 2.5;
@@ -104,14 +105,13 @@ router.post('/buy', auth, async (req, res) => {
                         userId: referrer.id,
                         amount: REFERRER_REWARD,
                         type: 'referral_reward',
-                        description: `Referral Bonus: ${user.name} made first purchase`,
+                        description: `Referral Bonus: ${user.name} made a purchase`,
                         status: 'success'
                     });
+                    console.log(`[REFERRAL] Credited Referrer ${referrer.id}`);
                 }
 
                 user.walletBalance += REFEREE_REWARD;
-                // Add to cashbackEarned for display? Or keep separate? 
-                // Using 'cashbackEarned' as a generic 'rewardsEarned' for this transaction display is good.
                 cashbackEarned += REFEREE_REWARD; 
                 
                 await Transaction.create({
@@ -126,6 +126,7 @@ router.post('/buy', auth, async (req, res) => {
                 referral.completedAt = new Date();
                 referral.rewardAmount = REFERRER_REWARD; 
                 await referral.save();
+                console.log(`[REFERRAL] Marked completed for ${referral.id}`);
             }
         }
         
